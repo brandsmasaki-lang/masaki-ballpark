@@ -1128,7 +1128,8 @@ function finishGame(G){
     if(!advanceRound(br)){
       titleBonus=L.prize*3; S.money+=titleBonus; dp+=60*(S.lvl+1); S.titles[S.lvl]++;
       cupMsg=`<p style="text-align:center;font-size:20px;font-weight:800;color:var(--bad)">${L.name} 優勝！！</p><p>優勝賞金 <span class="good">+${titleBonus}万円</span></p>`;
-      if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; ask=true; dp+=100*S.unlocked; buildBG(); cupMsg+=`<p class="good">施設のスペースが ${spaceMax()} に広がりました！</p>`;}
+      if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; dp+=100*S.unlocked; buildBG(); cupMsg+=`<p class="good">施設のスペースが ${spaceMax()} に広がりました！</p>`;}
+      if(S.lvl<S.unlocked) ask=true; // offer the next tournament after every title, not only the first one
       news(`${L.name}で優勝しました！`); S.br=null; S.round=0;
     } else { S.round=br.rounds.length-1; cupMsg=`<p>次は <b>${roundName(S.lvl,S.round)}</b>（来週の土曜）です。</p>`; news(`${L.name}、${roundName(S.lvl,S.round-1)}を突破！`); }
   } else {
@@ -1148,7 +1149,7 @@ function finishGame(G){
   save(); renderHUD();
 }
 function levelUpPrompt(){
-  const n=S.unlocked, L=LV[n], str=teamStr(S.players);
+  const n=Math.min(S.lvl+1,S.unlocked), L=LV[n], str=teamStr(S.players);
   modal('挑戦する大会を上げますか？',`<p style="font-size:17px;font-weight:800;text-align:center">次の大会：${L.name}</p><p>推奨チーム力 ${rk(L.req)}以上　／　いまのチーム力 ${rk(str)}</p><p>勝利賞金 ${L.prize}万円・経験値×${L.exp}・練習効果×${L.exp}・施設収入×${L.inc}<br>そのかわり練習代は×${L.cost}になります。</p>${str<L.req?'<p class="bad">いまのチーム力だと歯が立たないかもしれません。</p>':''}<p class="note">あとで「大会」メニューからいつでも切りかえられます。</p>`,
     [{label:'今のまま',sub:true,fn:()=>{closeModal(); paused=false; news(`${LV[S.lvl].name}にもう少し挑戦します`); save(); renderHUD(); return false;}},
      {label:'上げる！',fn:()=>{S.lvl=n; closeModal(); paused=false; news(`次は「${L.name}」に挑戦だ！`); save(); renderHUD(); return false;}}]);
