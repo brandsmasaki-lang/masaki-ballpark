@@ -277,7 +277,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.21</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.22</div></div>
  </div>
 </div>
 
@@ -330,8 +330,9 @@ const LV=[
   {name:'WBC',rounds:5,req:90,opp:89,prize:1800,inc:11,exp:2.7,cost:13}];
 /* real place names at home, real national teams abroad (our own team plays as Japan, so Japan never appears as an opponent) */
 const OPP=[
-  ['大村草野球団','諫早クラブ','佐世保ベースボール部','島原商店街ファイターズ','長崎大学OBクラブ','雲仙サンデーズ'],
+  /* smallest to biggest: Omura town clubs → Nagasaki cities → Nagasaki city selections → prefectures → nations */
   ['竹松クラブ','松原ブレーブス','三城ドルフィンズ','萱瀬タイガース','鈴田ライオンズ','西大村ナインズ'],
+  ['大村草野球団','諫早クラブ','佐世保ベースボール部','島原商店街ファイターズ','長崎大学OBクラブ','雲仙サンデーズ'],
   ['長崎市選抜','佐世保市選抜','諫早市選抜','島原市選抜','五島市選抜','対馬市選抜'],
   ['北海道代表','宮城代表','東京代表','愛知代表','大阪代表','福岡代表'],
   ['韓国代表','台湾代表','中国代表','オーストラリア代表','フィリピン代表','インドネシア代表'],
