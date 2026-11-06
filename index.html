@@ -166,6 +166,13 @@ table.sb td.tot{color:var(--board-hi);font-size:15px}
 .prow .sub .fat{width:32px}
 .prow .btn.sm{padding:3px 3px;font-size:12px;display:flex;align-items:center;gap:2px;flex:none}
 .prow .btn.sm .rk{font-size:11px;min-width:1.1em;padding:0 2px}
+.prow .btn.sm{position:relative;padding-bottom:7px}
+.xp{position:absolute;left:3px;right:3px;bottom:2px;height:3px;background:rgba(58,39,20,.18);border-radius:2px;overflow:hidden}
+.xp b{display:block;height:100%;background:#2e9be0}
+.xpl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:-2px 0 6px 5.4em}
+.xpl .bar{flex:1;height:6px}
+.xpl .bar i{background:#2e9be0}
+.xnote{font-size:11px;color:var(--muted);margin:2px 0 4px}
 .prow .btn.sm.on{outline:2px solid var(--win-line)}
 .prow canvas.pic{width:28px;height:36px;image-rendering:pixelated;flex:none}
 .bso{display:inline-flex;gap:8px;align-items:center}
@@ -642,6 +649,9 @@ function news(t){S.news=t; $('#ticker').textContent=t;}
 /* ---------- training & economy ---------- */
 function facBonus(k){const n=k==='bat'?cnt('cage'):k==='pit'?cnt('pen'):cnt('knock'); return Math.min(n,3)*0.3;}
 function needExp(p,k){return 20+p[k]*4.6;}
+/* progress toward the next rank (F→E at 40, then every 10 points, S tops out at 99) */
+function nextRankAt(v){return v<40?40:v>=90?99:Math.floor(v/10)*10+10;}
+function rankProg(p,k){const v=p[k]; if(v>=99) return 1; const hi=nextRankAt(v), lo=hi===40?30:hi===99?90:hi-10; return clamp((v-lo+(p.exp[k]||0)/needExp(p,k))/(hi-lo),0,1);}
 function addExp(p,k,amt,silent){
   if(p[k]>=99) return;
   p.exp[k]=(p.exp[k]||0)+amt; let ups=0; const r0=rank(p[k]);
@@ -741,11 +751,11 @@ function commandPrompt(){
   const draw=()=>{
     const trains=MENU[sel.menu].base>0;
     const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
-    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}</div><div class="sub">${POS_S[p.pos]} ${fatHTML(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span></button>`).join('')+`</div>`;}).join('');
+    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}" title="次のランクまで ${Math.round(rankProg(p,k)*100)}%">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
     const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今週のコマンド`,
       `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
       `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${menuCost(sel.menu)>S.money?'　<span class="bad">お金が足りません</span>':''}</p>`+
-      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><span class="note">　打・守・投のどれかをタップ</span></div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
+      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><span class="note">　打・守・投のどれかをタップ</span></div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
       [{label:trains&&sel.picks.length<3?`あと${3-sel.picks.length}人選んでください`:`これで決定${menuCost(sel.menu)?`（-${menuCost(sel.menu)}万円）`:''}`,fn:()=>{
         const c=menuCost(sel.menu); if(c>S.money) return false;
         if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='練習する選手を3人選んでください'; draw(); return false;}
@@ -779,7 +789,7 @@ function openPlayers(){
 }
 function openPlayer(id){
   const p=S.players.find(x=>x.id===id); if(!p) return;
-  const rows=AKEYS.map(k=>{const v=p[k]; const ex=Math.min(100,Math.round((p.exp[k]||0)/needExp(p,k)*100)); return `<div class="stat"><span>${ABIL[k]}</span>${rk(v)}<span>${v}</span><span class="bar" title="次の成長まで ${ex}%"><i style="width:${clamp(v,0,100)}%"></i></span></div>`;}).join('')+`<div class="sec">くわしい能力　${p.star?`<span class="rk" style="background:#e0457b">${esc(p.star)}</span> `:''}${typeOf(p)}${p.pos==='投'?`・球速${p.velo}km`:''}</div><div class="grid2">${subStats(p).map(([n,v])=>`<div>${n} ${rk(v)} <span class="note">${v}</span></div>`).join('')}</div>`;
+  const rows=AKEYS.map(k=>{const v=p[k]; const pr=Math.round(rankProg(p,k)*100); const nr=v>=90?'S（最大）':rank(nextRankAt(v)); return `<div class="stat"><span>${ABIL[k]}</span>${rk(v)}<span>${v}</span><span class="bar"><i style="width:${clamp(v,0,100)}%"></i></span></div><div class="xpl"><span>次の${nr}まで</span><span class="bar"><i style="width:${pr}%"></i></span><span>${pr}%</span></div>`;}).join('')+`<div class="sec">くわしい能力　${p.star?`<span class="rk" style="background:#e0457b">${esc(p.star)}</span> `:''}${typeOf(p)}${p.pos==='投'?`・球速${p.velo}km`:''}</div><div class="grid2">${subStats(p).map(([n,v])=>`<div>${n} ${rk(v)} <span class="note">${v}</span></div>`).join('')}</div>`;
   const st=p.st, car=p.car||st;
   const line=o=>p.pos==='投'?`${o.w}勝${o.l}敗`:`打率${avgStr(o)}　${o.hr}本　${o.rbi}打点`;
   const hist=(p.hist||[]).map(h=>`<tr><td>${h.y}年目</td><td>${p.pos==='投'?`${h.w}勝${h.l}敗`:avgStr(h)}</td><td>${p.pos==='投'?'':h.hr+'本'}</td><td>${p.pos==='投'?'':h.rbi+'打点'}</td></tr>`).join('');
