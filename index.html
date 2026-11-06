@@ -164,6 +164,8 @@ table.sb td.tot{color:var(--board-hi);font-size:15px}
 .prow .nm{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
 .prow .sub{font-size:11px;color:var(--muted);white-space:nowrap;line-height:1.3}
 .prow .sub .fat{width:32px}
+.prow .sub.st{color:var(--win-ink)}
+.pickhd{display:flex;align-items:center;gap:4px}
 .prow .btn.sm{padding:3px 3px;font-size:12px;display:flex;align-items:center;gap:2px;flex:none}
 .prow .btn.sm .rk{font-size:11px;min-width:1.1em;padding:0 2px}
 .prow .btn.sm{position:relative;padding-bottom:7px}
@@ -273,7 +275,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.11</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.12</div></div>
  </div>
 </div>
 
@@ -338,19 +340,19 @@ const OPP=[
   ['アメリカ代表','ドミニカ代表','日本代表','ベネズエラ代表','プエルトリコ代表']];
 /* facilities take up space; free space grows as higher tournaments open up. Running needs no facility */
 const FAC={
-  pen:{name:'ブルペン',cost:150,size:1,desc:'ピッチングの練習効率が上がる'},
-  cage:{name:'バッティング練習場',cost:180,size:2,desc:'バッティングの練習効率が上がる'},
-  knock:{name:'ノック場',cost:160,size:2,desc:'守備の練習効率が上がる'},
-  dorm:{name:'選手寮',cost:260,size:3,desc:'選手の疲れがたまりにくくなる'},
-  board:{name:'広告看板',cost:100,size:1,desc:'広告を出してスポンサー料をもらう'},
-  stall:{name:'屋台',cost:200,size:1,desc:'試合の日に、お客さんが食べ物を買ってくれる'},
-  goods:{name:'グッズショップ',cost:400,size:2,desc:'ファンや観客がグッズを買ってくれる'},
-  stand:{name:'観客席',cost:400,size:3,desc:'試合に入れるお客さんが2000人増える'}};
+  pen:{name:'ブルペン',cost:800,size:1,desc:'ピッチングの練習効率が上がる'},
+  cage:{name:'バッティング練習場',cost:1000,size:2,desc:'バッティングの練習効率が上がる'},
+  knock:{name:'ノック場',cost:900,size:2,desc:'守備の練習効率が上がる'},
+  dorm:{name:'選手寮',cost:1500,size:3,desc:'選手の疲れがたまりにくくなる'},
+  board:{name:'広告看板',cost:300,size:1,desc:'広告を出してスポンサー料をもらう'},
+  stall:{name:'屋台',cost:1200,size:1,desc:'試合の日に、お客さんが食べ物を買ってくれる'},
+  goods:{name:'グッズショップ',cost:3000,size:2,desc:'ファンや観客がグッズを買ってくれる'},
+  stand:{name:'観客席',cost:3000,size:3,desc:'試合に入れるお客さんが2000人増える'}};
 const SPACE=[4,6,8,11,14,17,20,24,28,33,40];
 const MENU={
   self:{name:'自主練',base:3,cost:0,fat:1,desc:'お金はかからないが、伸びは少なめ'},
-  normal:{name:'通常練習',base:8,cost:15,fat:3,desc:'コーチをつけたふつうの練習'},
-  camp:{name:'強化合宿',base:18,cost:60,fat:7,desc:'大きく伸びるが、お金がかかり疲れやすい'},
+  normal:{name:'通常練習',base:8,cost:30,fat:3,desc:'コーチをつけたふつうの練習'},
+  camp:{name:'強化合宿',base:18,cost:120,fat:7,desc:'大きく伸びるが、お金がかかり疲れやすい'},
   rest:{name:'休養',base:0,cost:0,fat:-15,desc:'練習はお休み。疲れをしっかり取る'},
   sales:{name:'営業回り',base:0,cost:0,fat:-5,desc:'スポンサーをまわってお金とファンをかせぐ'}};
 const FOCUS={bal:'バランス',bat:'打撃',fld:'守備・走塁',pit:'投手'};
@@ -530,7 +532,7 @@ function newSave(name,color){
   S.news='球団が誕生！ まずは屋台を建ててお金をかせごう';
 }
 function cnt(t){return S.fac.filter(f=>f.t===t).length;}
-function facCost(t){return Math.round(FAC[t].cost*(1+0.6*cnt(t)));}
+function facCost(t){return Math.round(FAC[t].cost*(1+0.8*cnt(t)));}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(KEY); return s?JSON.parse(s):null;}catch(e){return null;}}
 function loadBest(){try{return JSON.parse(localStorage.getItem(BEST_KEY)||'null');}catch(e){return null;}}
@@ -743,6 +745,9 @@ function picsIn(root,list,pal){root.querySelectorAll('canvas[data-pid]').forEach
 /* ---------- weekly command ---------- */
 let paused=false;
 function menuCost(k){return Math.round(MENU[k].cost*LV[S.lvl].cost);}
+function statLine(p){const t=p.st||{};
+  if(p.pos==='投'){const era=t.po?(t.er*27/t.po).toFixed(2):'-.--'; return `防御率 <b>${era}</b>　球速 <b>${p.velo}</b>km`;}
+  const avg=t.ab?(t.h/t.ab).toFixed(3).replace(/^0/,''):'.---'; return `打率 <b>${avg}</b>　HR <b>${t.hr||0}</b>`;}
 function commandPrompt(){
   paused=true;
   const sel={menu:S.cmd.menu,picks:(S.cmd.picks||[]).filter(x=>S.players.some(p=>p.id===x.id)).slice(0,3)};
@@ -751,11 +756,11 @@ function commandPrompt(){
   const draw=()=>{
     const trains=MENU[sel.menu].base>0;
     const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
-    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}" title="次のランクまで ${Math.round(rankProg(p,k)*100)}%">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
+    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}</div><div class="sub st">${statLine(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}" title="次のランクまで ${Math.round(rankProg(p,k)*100)}%">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
     const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今週のコマンド`,
       `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
       `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${menuCost(sel.menu)>S.money?'　<span class="bad">お金が足りません</span>':''}</p>`+
-      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><span class="note">　打・守・投のどれかをタップ</span></div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
+      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><button class="btn sm sub" id="pReset" style="margin-left:auto;font-size:13px;padding:3px 10px"${sel.picks.length?'':' disabled'}>リセット</button></div><div class="xnote">打・守・投のどれかをタップ</div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
       [{label:trains&&sel.picks.length<3?`あと${3-sel.picks.length}人選んでください`:`これで決定${menuCost(sel.menu)?`（-${menuCost(sel.menu)}万円）`:''}`,fn:()=>{
         const c=menuCost(sel.menu); if(c>S.money) return false;
         if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='練習する選手を3人選んでください'; draw(); return false;}
@@ -766,6 +771,7 @@ function commandPrompt(){
         closeModal(); paused=false; save(); renderHUD(); return false;}}]);
     picsIn(b,list);
     b.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{if(menuCost(el.dataset.m)>S.money)return; sel.menu=el.dataset.m; msg=''; draw();});
+    const rs=b.querySelector('#pReset'); if(rs) rs.onclick=()=>{sel.picks=[]; msg=''; draw();};
     b.querySelectorAll('[data-ab]').forEach(el=>el.onclick=()=>{
       const id=+el.dataset.p, ab=el.dataset.ab; const cur=sel.picks.find(x=>x.id===id);
       if(cur&&cur.ab===ab) sel.picks=sel.picks.filter(x=>x!==cur);
@@ -967,7 +973,7 @@ function pitch(G,opt){
 }
 function applyRes(G,ev,res,st,looking){
   const side=G.top?'away':'home', B=G.bases, b=ev.b;
-  ev.ptext=ev.text; ev.pitchOnly=false; ev.final=true; ev.tgt=null; ev.arc=0; G.pa=null; G.cnt={b:0,s:0};
+  const o0=G.outs; ev.ptext=ev.text; ev.pitchOnly=false; ev.final=true; ev.tgt=null; ev.arc=0; G.pa=null; G.cnt={b:0,s:0};
   const mv=(from,to)=>{const p=from<0?b:B[from]; if(from>=0)B[from]=null; if(to>=3){ev.runs++; ev.moves.push({p,from,to:3});} else if(to===-2){ev.moves.push({p,from,to:-2});} else {B[to]=p; ev.moves.push({p,from,to});}};
   let d;
   switch(res){
@@ -994,9 +1000,11 @@ function applyRes(G,ev,res,st,looking){
   ev.res=res;
   const bx=G.box[b.id]||(G.box[b.id]={ab:0,h:0,hr:0,rbi:0});
   if(res!=='BB'&&res!=='SAC') bx.ab++; if(['1B','2B','3B','HR'].includes(res)) bx.h++; if(res==='HR') bx.hr++; bx.rbi+=ev.runs;
+  pRec(G,ev.def.pitcher,Math.min(3,G.outs)-o0,ev.runs);
   scoreRuns(G,ev,side);
   return ev;
 }
+function pRec(G,p,outs,runs){if(!p) return; const pb=(G.pbox=G.pbox||{}); const r=pb[p.id]||(pb[p.id]={o:0,r:0}); r.o+=Math.max(0,outs); r.r+=runs;}
 function scoreRuns(G,ev,side){
   if(ev.runs){G.score[side]+=ev.runs; G.line[side][G.inning-1]=(G.line[side][G.inning-1]||0)+ev.runs; ev.text+=`　${ev.runs}点！`;}
   ev.outs=G.outs;
@@ -1008,7 +1016,7 @@ function stealEv(G){
   const p=clamp(0.45+(r.spd-50)*0.012-(c.def-50)*0.006,0.15,0.9);
   const ev={off,def,inning:G.inning,top:G.top,moves:[],runs:0,b:r,steal:true,arc:0};
   if(Math.random()<p){G.bases[0]=null; G.bases[1]=r; ev.moves.push({p:r,from:0,to:1}); ev.res='SB'; ev.text='盗塁成功！';}
-  else {G.bases[0]=null; ev.moves.push({p:r,from:0,to:-2}); G.outs++; ev.res='CS'; ev.text='盗塁失敗…';}
+  else {G.bases[0]=null; ev.moves.push({p:r,from:0,to:-2}); G.outs++; ev.res='CS'; ev.text='盗塁失敗…'; pRec(G,def.pitcher,1,0);}
   ev.outs=G.outs; if(G.outs>=3){ev.change=true; if(G.pa){off.bi--;} endHalf(G);}
   return ev;
 }
@@ -1107,13 +1115,14 @@ function finishGame(G){
   if(res==='D'){lottery=true; res=Math.random()<0.5?'W':'L';}
   S.rec[res==='W'?'w':res==='L'?'l':'d']++;
   // experience: same for win or loss
-  const expAmt=Math.round(10*L.exp);
-  const played=new Set([...my.order,...my.used]);
-  S.players.forEach(p=>{const amt=played.has(p)?expAmt:expAmt/2; const ks=p.pos==='投'?['pit','fld']:['bat','fld']; ks.forEach(k=>addExp(p,k,amt/ks.length*rnd(0.7,1.3),true));});
+  const expAmt=Math.round(35*L.exp);
+  const played=new Set([...my.order,...my.used]); const ups=[];
+  S.players.forEach(p=>{const amt=played.has(p)?expAmt:Math.round(expAmt*0.4); const ks=p.pos==='投'?['pit','fld']:['bat','fld']; ks.forEach(k=>{const r0=rank(p[k]); addExp(p,k,amt*rnd(0.8,1.2),true); if(rank(p[k])!==r0) ups.push(`${esc(p.name)}の${ABIL[k]}が<b>${rank(p[k])}</b>に！`);});});
   // money
   const gi=gameIncome(), att=gi.att, ticket=gi.total; const prize=res==='W'?L.prize:0;
   S.money+=ticket+prize;
   let hrs=0; for(const p of my.order){const bx=G.box[p.id]; if(bx&&p.car){hrs+=bx.hr; for(const o of [p.st,p.car]){o.ab+=bx.ab; o.h+=bx.h; o.hr+=bx.hr; o.rbi+=bx.rbi; o.g=(o.g||0)+1;}}}
+  for(const p of my.used){const pb=(G.pbox||{})[p.id]; if(pb&&p.car) for(const o of [p.st,p.car]){o.po=(o.po||0)+pb.o; o.er=(o.er||0)+pb.r;}}
   const starter=my.used[0]; if(starter.car){const k=res==='W'?'w':'l'; starter.st[k]++; starter.car[k]++;}
   my.used.forEach((p,i)=>{p.fat=clamp((p.fat||0)+(i===0?30:14),0,100);});
   S.players.forEach(p=>{if(my.used.includes(p))return; if(my.order.includes(p)) p.fat=clamp(p.fat+3,0,100); else p.fat=clamp(p.fat-6,0,100);});
@@ -1144,7 +1153,7 @@ function finishGame(G){
   S.lastPlayed=S.day; S.maxMoney=Math.max(S.maxMoney,S.money);
   const title=lottery?(res==='W'?'抽選勝ち':'抽選負け'):res==='W'?'勝利！':'敗北…';
   const col=res==='W'?'var(--bad)':res==='L'?'#3d85c6':'var(--muted)';
-  modal('試合結果',`<div style="text-align:center"><div style="font-size:32px;font-weight:800;color:${col}">${title}</div><div style="font-size:19px;font-weight:800">${esc(my.name)} ${ms} - ${os} ${esc(op.name)}</div></div>${lineTable(G)}${cupMsg}${hero&&hs>0?`<p>ヒーロー：<b>${esc(hero.p.name)}</b>（${hero.bx.ab}打数${hero.bx.h}安打${hero.bx.hr?` ${hero.bx.hr}本塁打`:''}${hero.bx.rbi?` ${hero.bx.rbi}打点`:''}）</p>`:''}<p>経験値 <b>+${expAmt}</b>（出場した選手）<br>観客 ${att.toLocaleString()}人　試合の日の収入 <span class="good">+${ticket}万円</span>${prize?`<br>勝利賞金 <span class="good">+${prize}万円</span>`:''}<br>ファン +${dp}人（${Math.floor(S.pop).toLocaleString()}人）</p>`,
+  modal('試合結果',`<div style="text-align:center"><div style="font-size:32px;font-weight:800;color:${col}">${title}</div><div style="font-size:19px;font-weight:800">${esc(my.name)} ${ms} - ${os} ${esc(op.name)}</div></div>${lineTable(G)}${cupMsg}${hero&&hs>0?`<p>ヒーロー：<b>${esc(hero.p.name)}</b>（${hero.bx.ab}打数${hero.bx.h}安打${hero.bx.hr?` ${hero.bx.hr}本塁打`:''}${hero.bx.rbi?` ${hero.bx.rbi}打点`:''}）</p>`:''}<p>経験値 <b>+${expAmt}</b>（出場した選手の${'打撃/投球と守備'}に。ベンチは+${Math.round(expAmt*0.4)}）${ups.length?`<br><span class="good">${ups.join('<br>')}</span>`:''}<br>観客 ${att.toLocaleString()}人　試合の日の収入 <span class="good">+${ticket}万円</span>${prize?`<br>勝利賞金 <span class="good">+${prize}万円</span>`:''}<br>ファン +${dp}人（${Math.floor(S.pop).toLocaleString()}人）</p>`,
     [{label:'OK',fn:()=>{ if(ask) levelUpPrompt(); else {closeModal(); paused=false;} save(); renderHUD(); return false;}}]);
   save(); renderHUD();
 }
