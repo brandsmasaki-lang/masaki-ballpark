@@ -152,11 +152,21 @@ table.sb td.tot{color:var(--board-hi);font-size:15px}
 .tacg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .tacg .btn{font-size:14px;padding:6px 6px;text-align:left}
 .tacg .btn small{display:block;font-size:11px;font-weight:500;line-height:1.35}
-.prow{display:flex;align-items:center;gap:6px;padding:5px 4px;border-bottom:2px dashed var(--win-dash)}
+.mgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.mgrid .btn{font-size:12px;padding:5px 1px;line-height:1.25;text-align:center;white-space:nowrap;overflow:hidden}
+.mgrid .btn small{display:block;font-size:11px;font-weight:700}
+.pickhd{position:sticky;top:-12px;z-index:2;background:var(--win);padding:8px 0 4px;margin-top:6px;font-weight:800;font-size:14px;border-bottom:2px solid var(--win-dash)}
+.pickhd b{color:var(--bad);font-size:17px}
+.plist{display:flex;flex-direction:column}
+.prow{display:flex;align-items:center;gap:4px;padding:3px 2px;border-bottom:1px dashed var(--win-dash)}
 .prow.picked{background:#ffe7c2;border-radius:6px}
 .prow .grow{flex:1;min-width:0}
-.prow .nm{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prow .btn.sm{padding:4px 6px;min-width:2.6em}
+.prow .nm{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.prow .sub{font-size:11px;color:var(--muted);white-space:nowrap;line-height:1.3}
+.prow .sub .fat{width:32px}
+.prow .btn.sm{padding:3px 3px;font-size:12px;display:flex;align-items:center;gap:2px;flex:none}
+.prow .btn.sm .rk{font-size:11px;min-width:1.1em;padding:0 2px}
+.prow .btn.sm.on{outline:2px solid var(--win-line)}
 .prow canvas.pic{width:28px;height:36px;image-rendering:pixelated;flex:none}
 .bso{display:inline-flex;gap:8px;align-items:center}
 .bso i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#123a20;border:1px solid #0a2414;margin-left:2px;vertical-align:-1px}
@@ -219,7 +229,7 @@ body{background:#15171c}
   <div class="subtop"><span>人気 <b id="hPop">0</b></span><span class="prog"><i id="hProg"></i></span><span>残り <b id="hYears">12</b> 年</span></div>
   <div id="stage">
     <div class="cwrap" id="hwrap">
-      <canvas id="hcv" width="176" height="192" aria-label="球場とまわりの施設"></canvas>
+      <canvas id="hcv" width="352" height="384" aria-label="球場とまわりの施設"></canvas>
       <div class="fx" id="hfx"></div>
       <nav class="side" id="side" hidden>
         <button class="si" data-go="cup"><canvas data-ic="cup" width="18" height="18"></canvas><span>大会</span></button>
@@ -236,7 +246,7 @@ body{background:#15171c}
   <div id="match" hidden>
   <div class="mwrap">
     <div class="sbw"><div id="sb"></div></div>
-    <div id="mstage"><div class="cwrap" id="mwrapc"><canvas id="mcv" width="176" height="200" aria-label="試合の様子"></canvas><div class="fx" id="mfx"></div></div></div>
+    <div id="mstage"><div class="cwrap" id="mwrapc"><canvas id="mcv" width="352" height="400" aria-label="試合の様子"></canvas><div class="fx" id="mfx"></div></div></div>
     <div class="mlog" id="mlog"></div>
     <div class="mtac" id="mTac"></div>
     <div class="mctl">
@@ -263,7 +273,7 @@ body{background:#15171c}
 <div id="title">
   <div class="tcard">
     <div class="logo">MASAKI<small>ボールパーク</small></div>
-    <canvas id="tcv" width="96" height="32"></canvas>
+    <canvas id="tcv" width="192" height="64"></canvas>
     <div class="tsub">12年間でチームを世界一へ。<br>最後にいくら資金を貯めたかがスコアです。<br><span id="tBest"></span></div>
     <div class="tbtns" id="tCont" hidden><button class="btn" id="tLoad">つづきから</button></div>
     <div class="tform">
@@ -289,6 +299,7 @@ const LW=176,LH=192,MW=176,MH=200,DAY_MS=1500,MAX_ROSTER=16,YEAR_DAYS=336,TOTAL_
 const WD='月火水木金土日';
 const SURN='佐藤 鈴木 高橋 田中 伊藤 渡辺 山本 中村 小林 加藤 吉田 山田 佐々木 山口 松本 井上 木村 林 清水 山崎 森 池田 橋本 阿部 石川 前田 藤田 小川 岡田 後藤 長谷川 村上 近藤 石井 坂本 遠藤 青木 藤井 西村 福田 太田 三浦 岡本 松田 中川 原田 小野 竹内 金子 和田 中山 石田 上田 森田 柴田 酒井 工藤 横山 宮崎 宮本 内田 高木 安藤 島田 谷口 大野 丸山 今井 河野 藤原 武田 村田 上野 杉山 増田 平野 大塚 千葉 久保 松井 小島 岩崎 桜井 野口 松尾 野村 木下 菊地 佐野 大西 杉本 新井 浜田 菅原 市川 水野 小松 高野 南 北村 東 西田'.split(' ');
 const POS=['捕','一','二','三','遊','左','中','右'];
+const POS_S={投:'投手',捕:'捕手',一:'一塁',二:'二塁',三:'三塁',遊:'遊撃',左:'左翼',中:'中堅',右:'右翼'};
 const POSN={投:'ピッチャー',捕:'キャッチャー',一:'ファースト',二:'セカンド',三:'サード',遊:'ショート',左:'レフト',中:'センター',右:'ライト'};
 const STATN={meet:'ミート',pow:'パワー',spd:'走力',def:'守備',velo:'球速',ctl:'制球',sta:'スタミナ',brk:'変化球'};
 const FSTATS=['meet','pow','spd','def'],PSTATS=['velo','ctl','sta','brk'];
@@ -338,61 +349,85 @@ const MENU={
 const FOCUS={bal:'バランス',bat:'打撃',fld:'守備・走塁',pit:'投手'};
 
 /* ---------- sprites (14x18, built from parts) ---------- */
-const SW=14,SH=18,INK='#1d140c';
+/* sprites are drawn at 28x36 (double detail) and shown in a 14x18 logical box, so characters carry finer pixels than the tiles */
+const SW=28,SH=36,LSW=14,LSH=18,INK='#1d140c';
 const SKIN=['#f7d3ae','#efbf91','#d49a6a','#a8704a'];
 const HAIR=['#2a1d14','#5a3520','#8a5a2b','#d9a63c','#b8452a','#6b6b78'];
 const SHIRT=['#e85d5d','#6fb0ff','#ffd45c','#9be37a','#c88bf0','#ff9f5a','#f2f2f2','#4fc1b0'];
 const PANTS=['#3b4a7a','#5c4a3a','#3a3a3a','#7a6a9a','#2f5d4a'];
+const IRIS=['#3a5bb0','#6b3f1f','#2f7d4a','#7a3aa0'];
 function shade(hex,a){const n=parseInt(hex.slice(1),16);const f=v=>clamp(Math.round(a<0?v*(1+a):v+(255-v)*a),0,255);return '#'+((1<<24)|(f(n>>16)<<16)|(f(n>>8&255)<<8)|f(n&255)).toString(16).slice(1);}
-function makeLook(){return {sk:ri(0,3),hc:ri(0,5),hs:ri(0,5),ey:ri(0,5),mo:ri(0,3),gl:Math.random()<0.13?1:0,mu:Math.random()<0.1?1:0,bd:Math.random()<0.08?1:0,bl:Math.random()<0.25?1:0,bu:pick([0,1,1,1,2])};}
+function makeLook(){return {sk:ri(0,3),hc:ri(0,5),hs:ri(0,5),ey:ri(0,5),mo:ri(0,3),gl:Math.random()<0.13?1:0,mu:Math.random()<0.1?1:0,bd:Math.random()<0.08?1:0,bl:Math.random()<0.25?1:0,bu:pick([0,1,1,1,2]),ir:ri(0,3)};}
 const sprCache=new Map();
 function sprite(look,pal,o){
-  const key=`${look.sk}${look.hc}${look.hs}${look.ey}${look.mo}${look.gl}${look.mu}${look.bd}${look.bl}${look.bu}|${pal.c}${pal.u}${pal.p}|${o.civ?1:0}${o.frame||0}${o.cat?1:0}${o.glove?1:0}`;
+  const key=`${look.sk}${look.hc}${look.hs}${look.ey}${look.mo}${look.gl}${look.mu}${look.bd}${look.bl}${look.bu}${look.ir||0}|${pal.c}${pal.u}${pal.p}|${o.civ?1:0}${o.frame||0}${o.cat?1:0}${o.glove?1:0}`;
   let c=sprCache.get(key); if(c) return c;
   const px=Array.from({length:SH},()=>Array(SW).fill(null));
   const P=(x,y,col)=>{if(x>=0&&x<SW&&y>=0&&y<SH)px[y][x]=col;};
   const R=(x0,x1,y,col)=>{for(let x=x0;x<=x1;x++)P(x,y,col);};
-  const skin=SKIN[look.sk], skinD=shade(skin,-0.18), hair=HAIR[look.hc];
-  const top=o.civ?hair:pal.c, topD=o.civ?shade(hair,-0.2):shade(pal.c,-0.32);
-  R(5,8,1,top); R(4,9,2,top); R(3,10,3,top);
-  if(o.civ) R(3,10,4,top); else {R(2,11,4,topD); P(6,2,pal.u); P(7,2,pal.u); P(6,3,pal.u);}
-  for(let y=5;y<=8;y++) R(3,10,y,skin); R(4,9,9,skin);
+  const V=(x,y0,y1,col)=>{for(let y=y0;y<=y1;y++)P(x,y,col);};
+  const skin=SKIN[look.sk], skinD=shade(skin,-0.16), skinL=shade(skin,0.3);
+  const hair=HAIR[look.hc], hairD=shade(hair,-0.35), hairL=shade(hair,0.35);
+  const top=o.civ?hair:pal.c, topD=shade(top,-0.3), topL=shade(top,0.3), topDD=shade(top,-0.5);
+  // crown (cap or hair)
+  for(let y=2;y<=10;y++){const dy=(10.5-y)/8.5; const w=Math.round(9.4*Math.sqrt(Math.max(0,1-dy*dy))); for(let x=14-w;x<14+w;x++){let col=top; if(x<=14-w+2&&y<9) col=topL; else if(x>=14+w-2) col=topD; P(x,y,col);}}
+  if(!o.civ){P(9,4,topL); P(10,3,topL); P(11,3,topL); // cap shine
+    P(13,4,pal.u); P(14,4,pal.u); R(12,15,5,pal.u); R(12,15,6,pal.u); P(13,7,pal.u); P(14,7,pal.u); // logo
+    R(4,23,10,topD); R(4,24,11,topD); R(5,23,12,topDD);} // brim
+  else {R(5,22,10,hair); R(5,22,11,hair); P(8,4,hairL); P(9,3,hairL); P(10,3,hairL); P(11,4,hairL);}
+  // face
+  for(let y=12;y<=19;y++){R(6,21,y,skin); P(20,y,skinD); P(21,y,skinD);}
+  R(7,20,20,skin); R(8,19,21,skin); R(10,17,22,skin); R(17,19,21,skinD); R(16,17,22,skinD);
+  if(!o.civ) R(6,21,12,skinD);
+  P(7,14,skinL); P(7,15,skinL);
   switch(look.hs){
-    case 0: P(3,5,hair); P(10,5,hair); break;
-    case 2: for(let y=5;y<=9;y++){P(2,y,hair); P(11,y,hair);} P(3,9,hair); P(10,9,hair); break;
-    case 3: [3,4,5,7,8,10].forEach(x=>P(x,5,hair)); break;
-    case 4: P(2,3,hair); P(11,3,hair); P(1,2,hair); P(12,2,hair); P(3,5,hair); P(10,5,hair); break;
-    case 5: P(2,7,skin); P(11,7,skin); P(3,5,hair); P(10,5,hair); break;
+    case 0: V(6,12,15,hair); V(21,12,15,hair); P(7,13,hair); break;
+    case 2: for(let y=11;y<=21;y++){P(4,y,hairD); P(5,y,hair); P(22,y,hair); P(23,y,hairD);} V(6,12,16,hair); V(21,12,16,hair); break;
+    case 3: for(let x=6;x<=21;x++){if(x%3!==0) P(x,12,hair); if(x%3===1) P(x,13,hair);} V(6,12,15,hair); V(21,12,15,hair); break;
+    case 4: P(3,7,hair); P(2,8,hair); P(3,9,hair); P(24,7,hair); P(25,8,hair); P(24,9,hair); P(2,6,hairD); P(25,6,hairD); V(6,12,14,hair); V(21,12,14,hair); break;
+    case 5: V(5,15,17,skin); V(22,15,17,skin); P(5,16,skinD); P(22,16,skinD); P(6,12,hair); P(21,12,hair); break;
   }
+  const L=[9,16];
   switch(look.ey){
-    case 0: P(5,7,INK); P(8,7,INK); break;
-    case 1: P(5,6,INK); P(5,7,INK); P(8,6,INK); P(8,7,INK); break;
-    case 2: R(4,5,7,INK); R(8,9,7,INK); break;
-    case 3: P(4,7,INK); P(5,6,INK); P(6,7,INK); P(7,7,INK); P(8,6,INK); P(9,7,INK); break;
-    case 4: P(5,7,INK); P(8,7,INK); R(4,5,6,INK); R(8,9,6,INK); break;
-    case 5: P(4,6,INK); P(5,6,'#ffffff'); P(4,7,INK); P(5,7,INK); P(8,6,INK); P(9,6,'#ffffff'); P(8,7,INK); P(9,7,INK); break;
+    case 0: L.forEach(x=>{R(x,x+1,16,INK); R(x,x+1,17,INK);}); break;
+    case 1: L.forEach(x=>{R(x,x+1,15,INK); R(x,x+1,16,INK); R(x,x+1,17,INK); P(x,15,'#ffffff');}); break;
+    case 2: L.forEach(x=>{R(x-1,x+1,17,INK);}); break;
+    case 3: L.forEach(x=>{P(x-1,17,INK); P(x,16,INK); P(x+1,16,INK); P(x+2,17,INK);}); break;
+    case 4: L.forEach(x=>{R(x,x+1,16,INK); R(x,x+1,17,INK);}); R(8,11,14,INK); P(11,15,INK); R(16,19,14,INK); P(16,15,INK); break;
+    case 5: L.forEach(x=>{R(x-1,x+1,15,INK); P(x-1,16,INK); P(x,16,IRIS[look.ir||0]); P(x+1,16,'#ffffff'); P(x-1,17,INK); R(x,x+1,17,IRIS[look.ir||0]);}); break;
   }
-  if(look.bl){P(4,8,'#ee8f86'); P(9,8,'#ee8f86');}
-  const mc=shade(skin,-0.45);
-  if(look.mo===1){P(6,9,mc); P(7,9,mc);} else if(look.mo===2){P(6,9,'#a8322a'); P(7,9,'#a8322a');} else if(look.mo===3){R(5,8,9,mc); P(6,9,'#ffffff');}
-  if(look.gl){const gc='#2b2b6a'; R(4,6,6,gc); R(4,6,8,gc); P(4,7,gc); P(6,7,gc); R(7,9,6,gc); R(7,9,8,gc); P(9,7,gc); P(7,7,gc);}
-  if(look.mu) R(5,8,8,hair);
-  if(look.bd){R(3,10,9,hair); P(6,9,mc); P(7,9,mc); R(4,9,10,hair);}
-  if(o.cat){const mk='#55585f'; R(3,10,6,mk); R(3,10,8,mk); P(6,7,mk); P(7,7,mk);}
-  const W=[[5,8],[4,9],[3,10]][look.bu]; const a=W[0], b=W[1];
-  const uni=o.civ?pal.u:pal.u, slv=o.civ?shade(pal.u,-0.2):pal.c;
-  P(6,10,skinD); P(7,10,skinD);
-  for(let y=11;y<=13;y++) R(a,b,y,uni);
-  P(a-1,11,slv); P(a-1,12,slv); P(b+1,11,slv); P(b+1,12,slv); P(a-1,13,skin); P(b+1,13,skin);
-  if(!o.civ){P(6,12,pal.c); P(7,12,pal.c);}
-  if(o.cat){for(let y=11;y<=13;y++) R(a,b,y,'#3b3b4f'); P(6,12,'#7a7a96'); P(7,12,'#7a7a96');}
-  R(a,b,14,o.civ?pal.p:topD);
-  const pant=pal.p, shoe=o.civ?'#4a3326':'#26201c';
-  const lL=[look.bu===2?4:Math.max(a+1,5),6], lR=[7,look.bu===2?9:Math.min(b-1,8)];
-  if(lL[0]>lL[1]) lL[0]=lL[1]; if(lR[1]<lR[0]) lR[1]=lR[0];
-  if(o.frame===1){R(lL[0],lL[1],15,pant); R(lL[0]-1,lL[1],16,shoe); R(lR[0],lR[1],15,pant); R(lR[0],lR[1],16,pant); R(lR[0],lR[1]+1,17,shoe);}
-  else {R(lL[0],lL[1],15,pant); R(lL[0],lL[1],16,pant); R(lL[0]-1,lL[1],17,shoe); R(lR[0],lR[1],15,pant); R(lR[0],lR[1],16,pant); R(lR[0],lR[1]+1,17,shoe);}
-  if(o.glove){const gv='#8a4b1c'; P(a-1,13,gv); P(a-2,13,gv); P(a-1,14,gv); P(a-2,12,gv);}
+  P(14,18,skinD); P(13,19,skinD);
+  if(look.bl){R(7,8,19,'#f09a90'); R(19,20,19,'#f09a90');}
+  const mc=shade(skin,-0.5);
+  switch(look.mo){
+    case 0: R(13,14,21,mc); break;
+    case 1: P(12,20,mc); R(13,14,21,mc); P(15,20,mc); break;
+    case 2: R(13,14,20,'#8a2a22'); R(13,14,21,'#e06a6a'); break;
+    case 3: R(11,16,20,mc); R(12,15,21,'#ffffff'); P(11,21,mc); P(16,21,mc); break;
+  }
+  if(look.gl){const gc='#2b2b6a'; [[7,12],[14,19]].forEach(([x0,x1])=>{R(x0,x1,14,gc); R(x0,x1,18,gc); V(x0,15,17,gc); V(x1,15,17,gc);}); R(12,15,15,gc);}
+  if(look.mu){R(11,16,19,hair); R(11,16,20,hairD); P(13,19,hairL);}
+  if(look.bd){R(7,20,20,hair); R(8,19,21,hair); R(9,18,22,hair); R(11,16,23,hairD); R(13,14,21,mc);}
+  if(o.cat){const mk='#5a5e66'; R(6,21,14,mk); R(6,21,18,mk); V(8,13,21,mk); V(13,13,22,mk); V(14,13,22,mk); V(19,13,21,mk);}
+  // body
+  const W=[[9,18],[8,19],[7,20]][look.bu]; const a=W[0], b=W[1];
+  const uni=pal.u, uniD=shade(uni,-0.14), uniL=shade(uni,0.4), slv=o.civ?shade(pal.u,-0.22):pal.c;
+  R(12,15,23,skinD);
+  for(let y=24;y<=29;y++){R(a,b,y,uni); P(b,y,uniD); P(b-1,y,uniD); P(a,y,uniL);}
+  if(!o.civ){R(12,15,24,pal.c); P(13,25,pal.c); P(14,25,pal.c); R(10,12,26,pal.c); P(11,27,pal.c); R(10,12,28,pal.c); V(16,26,28,pal.c); V(17,26,26,pal.c);}
+  else {P(13,24,skin); P(14,24,skin);}
+  [a-2,a-1].forEach(x=>V(x,24,26,slv)); [b+1,b+2].forEach(x=>V(x,24,26,slv));
+  R(a-2,a-1,27,skin); R(a-2,a-1,28,skin); R(b+1,b+2,27,skin); R(b+1,b+2,28,skinD);
+  if(o.cat){for(let y=24;y<=29;y++) R(a,b,y,y%2?'#3b3b4f':'#4a4a62'); R(12,15,24,'#6a6a85');}
+  R(a,b,30,o.civ?pal.p:'#2b2b33'); if(!o.civ){P(13,30,'#e8c44a'); P(14,30,'#e8c44a');}
+  // legs
+  const pant=pal.p, pantD=shade(pant,-0.18), sock=o.civ?pantD:pal.c, shoe=o.civ?'#5a3a26':'#26201c', shoeL=o.civ?'#8a5a3a':'#5a5a66';
+  const lx=[a+1,13], rx=[14,b-1];
+  const leg=(x0,x1,y0,y1,sY,outer)=>{for(let y=y0;y<=y1;y++){R(x0,x1,y,pant); if(!o.civ) P(outer,y,pal.c);} R(x0,x1,sY,sock); R(x0-(outer<14?1:0),x1+(outer>14?1:0),sY+1,shoe); P(outer<14?x0:x1,sY+1,shoeL);};
+  if(o.frame===1){leg(lx[0],lx[1],31,31,32,lx[0]); leg(rx[0],rx[1],31,33,34,rx[1]);}
+  else {leg(lx[0],lx[1],31,33,34,lx[0]); leg(rx[0],rx[1],31,33,34,rx[1]);}
+  for(let y=31;y<=33;y++) if(px[y][13]===pant) P(13,y,pantD);
+  if(o.glove){const gv='#8a4b1c', gl='#b46c32'; R(a-4,a-1,26,gv); R(a-4,a-1,27,gv); R(a-4,a-1,28,gv); R(a-3,a-2,29,gv); P(a-3,27,gl); P(a-2,26,gl);}
   c=document.createElement('canvas'); c.width=SW; c.height=SH; const g=c.getContext('2d');
   for(let y=0;y<SH;y++) for(let x=0;x<SW;x++){
     let col=px[y][x];
@@ -404,11 +439,14 @@ function sprite(look,pal,o){
 function myPal(){return {c:S.color,u:'#fafafa',p:'#e4e4e4'};}
 const BAT_READY=[[10,13],[11,12],[11,11],[12,10],[12,9],[12,8],[13,7]];
 const BAT_SWING=[[11,13],[12,13],[13,13],[14,13],[15,13],[16,12],[17,12]];
+function shadowAt(g,x,y){g.fillStyle='rgba(20,40,20,.28)'; g.fillRect(x-4.5,y-0.5,9,1); g.fillRect(x-3.5,y+0.5,7,0.5);}
 function drawGuy(g,p,pal,x,y,frame,bat,pos){
-  const sx=Math.round(x-7),sy=Math.round(y-17);
-  g.drawImage(sprite(p.look,pal,{frame:frame||0,cat:pos==='捕'&&!bat,glove:!bat}),sx,sy);
-  if(bat){g.fillStyle='#c0803e'; (bat==='swing'?BAT_SWING:BAT_READY).forEach(([a,b])=>g.fillRect(sx+a,sy+b,1,1));}
+  const sx=Math.round(x*2)/2-7,sy=Math.round(y*2)/2-17;
+  shadowAt(g,x,y);
+  g.drawImage(sprite(p.look,pal,{frame:frame||0,cat:pos==='捕'&&!bat,glove:!bat}),sx,sy,LSW,LSH);
+  if(bat){g.fillStyle='#c0803e'; (bat==='swing'?BAT_SWING:BAT_READY).forEach(([a,b])=>g.fillRect(sx+a,sy+b,1,1)); g.fillStyle='#8a5a2a'; const t=(bat==='swing'?BAT_SWING:BAT_READY); const e=t[t.length-1]; g.fillRect(sx+e[0],sy+e[1],1,0.5);}
 }
+function drawCiv(g,v){shadowAt(g,v.x,v.y); g.drawImage(sprite(v.look,v.pal,{civ:true,frame:Math.floor(v.walk*6)%2}),Math.round(v.x*2)/2-7,Math.round(v.y*2)/2-17,LSW,LSH);}
 function drawPortrait(c,p,pal,pos){c.width=SW;c.height=SH; const g=c.getContext('2d'); g.clearRect(0,0,SW,SH); g.drawImage(sprite(p.look,pal,{cat:pos==='捕',glove:false}),0,0);}
 
 /* ---------- pixel helpers ---------- */
@@ -459,15 +497,25 @@ const ABIL={bat:'バッティング',fld:'守備',pit:'ピッチング'}, ABS={b
 function mkPlayer(pos,base){
   const g=d=>clamp(Math.round(base+d+rnd(-10,10)),5,99); const isP=pos==='投';
   const p={id:uid(),name:pick(SURN),pos,age:ri(18,29),look:makeLook(),tal:+rnd(0.8,1.4).toFixed(2),cond:3,fat:0,
-    bat:g(isP?-22:0),fld:g(0),pit:isP?g(0):g(-28),bias:{m:ri(-8,8),p:ri(-8,8),s:ri(-8,8),v:ri(-4,4),c:ri(-8,8),st:ri(-8,8),b:ri(-8,8)},
+    bat:g(isP?-22:0),fld:g(0),pit:isP?g(0):g(-28),bias:{m:ri(-10,10),p:ri(-10,10),s:ri(-10,10),v:ri(-12,12),c:ri(-10,10),st:ri(-8,8),b:ri(-12,12)},
     exp:{},st:{ab:0,h:0,hr:0,rbi:0,w:0,l:0,g:0},car:{ab:0,h:0,hr:0,rbi:0,w:0,l:0,g:0},hist:[]};
   sync(p); p.sal=salary(p); return p;
 }
-function sync(p){const b=p.bias; p.meet=clamp(p.bat+b.m,1,99); p.pow=clamp(p.bat+b.p,1,99); p.spd=clamp(p.fld+b.s,1,99); p.def=p.fld; p.velo=clamp(Math.round(118+p.pit*0.47+b.v),110,165); p.ctl=clamp(p.pit+b.c,1,99); p.sta=clamp(p.pit+b.st,1,99); p.brk=clamp(p.pit+b.b,1,99);}
-function typeOf(p){const b=p.bias; if(p.pos==='投') return b.v>=2?'速球派':b.b>=4?'変化球派':b.c>=4?'制球派':b.st>=4?'スタミナ型':'バランス型'; return b.p-b.m>=6?'パワー型':b.m-b.p>=6?'アベレージ型':b.s>=5?'俊足型':'バランス型';}
+function sync(p){const b=p.bias; p.meet=clamp(p.bat+b.m,1,99); p.pow=clamp(p.bat+b.p,1,99); p.spd=clamp(p.fld+b.s,1,99); p.def=p.fld; p.fast=clamp(p.pit+b.v,1,99); p.velo=clamp(Math.round(118+p.fast*0.47),110,165); p.ctl=clamp(p.pit+b.c,1,99); p.sta=clamp(p.pit+b.st,1,99); p.brk=clamp(p.pit+b.b,1,99);}
+function typeOf(p){const b=p.bias; if(p.pos==='投') return b.v>=6&&b.v>=b.b?'速球派':b.b>=6?'変化球派':b.c>=6?'制球派':b.st>=5?'スタミナ型':'バランス型'; return b.p-b.m>=7?'パワー型':b.m-b.p>=7?'アベレージ型':b.s>=7?'俊足型':'バランス型';}
+function subStats(p){return p.pos==='投'?[['直球',p.fast],['変化球',p.brk],['制球',p.ctl]]:[['ミート',p.meet],['パワー',p.pow],['走力',p.spd]];}
 function ovr(p){return p.pos==='投'?Math.round(p.pit*0.8+p.fld*0.2):Math.round(p.bat*0.6+p.fld*0.4);}
 function salary(p){const o=ovr(p); return Math.round(2+o*o/600);}
-function mkRoster(base){const r=POS.map(pos=>mkPlayer(pos,base)); for(let i=0;i<3;i++) r.push(mkPlayer('投',base)); r.push(mkPlayer(pick(POS),base-4)); return r;}
+/* every roster has a few standouts: a cleanup hitter, an ace with one strong pitch, a defensive catcher, a fast leadoff man */
+function mkRoster(base){
+  const r=POS.map(pos=>mkPlayer(pos,base)); for(let i=0;i<3;i++) r.push(mkPlayer('投',base)); r.push(mkPlayer(pick(POS),base-4));
+  const up=(p,k,v)=>{p[k]=clamp(p[k]+v,5,99);};
+  const clean=pick(r.filter(p=>['一','三','左','右'].includes(p.pos))); up(clean,'bat',ri(26,32)); clean.bias.p=ri(8,14); clean.star='4番候補';
+  const ace=r.find(p=>p.pos==='投'); up(ace,'pit',ri(10,15)); if(Math.random()<0.5){ace.bias.v=ri(16,20); ace.star='直球が武器';} else {ace.bias.b=ri(16,20); ace.star='変化球が武器';}
+  const cat=r.find(p=>p.pos==='捕'); up(cat,'fld',ri(36,42)); cat.star='守備の要';
+  const lead=pick(r.filter(p=>['中','遊','二'].includes(p.pos))); up(lead,'fld',ri(12,18)); up(lead,'bat',ri(6,10)); lead.bias.s=ri(12,16); lead.star='俊足の1番';
+  r.forEach(p=>{sync(p); p.sal=salary(p);}); return r;
+}
 function newSave(name,color){
   S={v:3,name,color,day:0,money:500,pop:10,speed:1,mspeed:2,auto:false,lastPlayed:-1,cmdWeek:-1,cmd:{menu:'normal',picks:[]},recs:{},nextId:1,players:[],fac:[],scouts:[],news:'',lvl:0,unlocked:0,round:0,titles:Array(LV.length).fill(0),rec:{w:0,l:0,d:0},opp:null,maxMoney:500};
   S.players=mkRoster(30);
@@ -495,7 +543,7 @@ LV.forEach(l=>l.rounds=3);
 [['公園キャッチボール会'],['市役所スワローズ'],['県北ブルズ'],[],['インドネシア代表'],['フランス代表'],['アルゼンチン代表'],['ジャマイカ代表'],['オランダ代表'],['キューバ代表'],['韓国代表']].forEach((a,i)=>OPP[i].push(...a));
 
 /* ---------- home scene ---------- */
-const hcv=$('#hcv'),hctx=hcv.getContext('2d'); hctx.imageSmoothingEnabled=false;
+const hcv=$('#hcv'),hctx=hcv.getContext('2d'); hctx.imageSmoothingEnabled=false; hctx.setTransform(2,0,0,2,0,0);
 const bg=document.createElement('canvas'); bg.width=LW; bg.height=LH;
 function isField(c,r){return c>=1&&c<=9&&r>=1&&r<=8;}
 function isRoad(c,r){return r===9||(c===5&&r>=10);}
@@ -570,7 +618,7 @@ function drawHome(dt){
     if(!v.wp.length){ if(v.back){v.stay=rnd(0.8,1.6); if(v.shop==='stall'||v.shop==='goods') hfloat(v.x,v.y-16,'+¥','money'); return true;} return false; }
     v.walk+=dt;
     if(moveTo(v,v.wp[0][0],v.wp[0][1],v.spd,dt)) v.wp.shift();
-    ents.push({y:v.y,draw:()=>g.drawImage(sprite(v.look,v.pal,{civ:true,frame:Math.floor(v.walk*6)%2}),Math.round(v.x-7),Math.round(v.y-17))});
+    ents.push({y:v.y,draw:()=>drawCiv(g,v)});
     return true;
   });
   ents.sort((a,b)=>a.y-b.y).forEach(e=>e.draw());
@@ -612,11 +660,12 @@ function trainDay(){
     } else p.fat=clamp(p.fat-(M.base?4:-M.fat)-cnt('dorm')*2,0,100);
   });
 }
+function facIncome(t,vis){vis=vis||(20+S.pop*1.2); const inc=LV[S.lvl].inc; return t==='stall'?vis*0.03*inc:t==='goods'?vis*0.045*inc:t==='board'?2*inc:0;}
 function economy(){
   const inc=LV[S.lvl].inc;
   const vis=Math.round((20+S.pop*1.2)*rnd(0.85,1.15));
-  const money=(cnt('stall')*vis*0.012+cnt('goods')*vis*0.02+cnt('board')*1)*inc;
-  S.money+=money; S.pop=S.pop+cnt('goods')*0.02+cnt('board')*0.015;
+  const money=['stall','goods','board'].reduce((s,t)=>s+cnt(t)*facIncome(t,vis),0);
+  S.money+=money; S.pop=S.pop+cnt('goods')*0.03+cnt('board')*0.02;
   spawnVisitors(Math.min(8,Math.ceil(vis/14)));
   if(money>=1) hfloat(88,150,`施設収入 +${Math.round(money)}万`,'money');
 }
@@ -687,11 +736,11 @@ function commandPrompt(){
   const draw=()=>{
     const trains=MENU[sel.menu].base>0;
     const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
-    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)} <span class="note">${POSN[p.pos]}</span></div><div class="sub">疲れ ${fatHTML(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}">${ABS[k]}${rank(p[k])}</button>`).join('')+`</div>`;}).join('');
+    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}</div><div class="sub">${POS_S[p.pos]} ${fatHTML(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span></button>`).join('')+`</div>`;}).join('');
     const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今週のコマンド`,
-      `<div class="sec">練習メニュー（お金をかけるほど伸びる）</div>`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn opt ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}　${c?`${c}万円`:'無料'}<small>${lack?'お金が足りません':v.desc}${k==='sales'?`（約${salesGain()}万円）`:''}</small></button>`;}).join('<div style="height:6px"></div>')+
-      (trains?`<div class="sec">練習する3人と、鍛える能力を選ぶ（${sel.picks.length}/3人）</div><p class="note">打＝バッティング　守＝守備　投＝ピッチング。選ばれなかった選手は休んで疲れを取ります。</p>${msg?`<p class="bad">${msg}</p>`:''}${rows}`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>')+
-      `<p class="note">いまの大会「${LV[S.lvl].name}」では練習効果が×${LV[S.lvl].exp}、練習代が×${LV[S.lvl].cost}になります。施設やスカウトはメニューからいつでも使えます。</p>`,
+      `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
+      `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${menuCost(sel.menu)>S.money?'　<span class="bad">お金が足りません</span>':''}</p>`+
+      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><span class="note">　打・守・投のどれかをタップ</span></div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
       [{label:trains&&sel.picks.length<3?`あと${3-sel.picks.length}人選んでください`:`これで決定${menuCost(sel.menu)?`（-${menuCost(sel.menu)}万円）`:''}`,fn:()=>{
         const c=menuCost(sel.menu); if(c>S.money) return false;
         if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='練習する選手を3人選んでください'; draw(); return false;}
@@ -715,7 +764,7 @@ function commandPrompt(){
 function salesGain(){return Math.round((20+S.pop*0.6)*LV[S.lvl].inc);}
 
 /* ---------- panels ---------- */
-function keyStats(p){return AKEYS.map(k=>`${ABS[k]}${rk(p[k])}`).join(' ')+` <span class="note">${typeOf(p)}</span>`;}
+function keyStats(p){const s=subStats(p).filter(([n,v])=>rank(v)!==rank(p.pos==='投'?p.pit:p.bat)&&v>=40).map(([n,v])=>`${n}${rank(v)}`); return AKEYS.map(k=>`${ABS[k]}${rk(p[k])}`).join(' ')+` <span class="note">${p.star?esc(p.star)+'・':''}${typeOf(p)}${s.length?'（'+s.join(' ')+'）':''}</span>`;}
 function avgStr(o){return o.ab?(o.h/o.ab).toFixed(3).replace(/^0/,''):'---';}
 function openPlayers(){
   const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos)||ovr(b)-ovr(a));
@@ -725,7 +774,7 @@ function openPlayers(){
 }
 function openPlayer(id){
   const p=S.players.find(x=>x.id===id); if(!p) return;
-  const rows=AKEYS.map(k=>{const v=p[k]; const ex=Math.min(100,Math.round((p.exp[k]||0)/needExp(p,k)*100)); return `<div class="stat"><span>${ABIL[k]}</span>${rk(v)}<span>${v}</span><span class="bar" title="次の成長まで ${ex}%"><i style="width:${clamp(v,0,100)}%"></i></span></div>`;}).join('')+(p.pos==='投'?`<p class="note">球速 ${p.velo}km・${typeOf(p)}</p>`:`<p class="note">${typeOf(p)}（ミート${p.meet}・パワー${p.pow}・走力${p.spd}）</p>`);
+  const rows=AKEYS.map(k=>{const v=p[k]; const ex=Math.min(100,Math.round((p.exp[k]||0)/needExp(p,k)*100)); return `<div class="stat"><span>${ABIL[k]}</span>${rk(v)}<span>${v}</span><span class="bar" title="次の成長まで ${ex}%"><i style="width:${clamp(v,0,100)}%"></i></span></div>`;}).join('')+`<div class="sec">くわしい能力　${p.star?`<span class="rk" style="background:#e0457b">${esc(p.star)}</span> `:''}${typeOf(p)}${p.pos==='投'?`・球速${p.velo}km`:''}</div><div class="grid2">${subStats(p).map(([n,v])=>`<div>${n} ${rk(v)} <span class="note">${v}</span></div>`).join('')}</div>`;
   const st=p.st, car=p.car||st;
   const line=o=>p.pos==='投'?`${o.w}勝${o.l}敗`:`打率${avgStr(o)}　${o.hr}本　${o.rbi}打点`;
   const hist=(p.hist||[]).map(h=>`<tr><td>${h.y}年目</td><td>${p.pos==='投'?`${h.w}勝${h.l}敗`:avgStr(h)}</td><td>${p.pos==='投'?'':h.hr+'本'}</td><td>${p.pos==='投'?'':h.rbi+'打点'}</td></tr>`).join('');
@@ -745,7 +794,7 @@ function openPlayer(id){
 function openFac(){
   const inc=LV[S.lvl].inc, cap=spaceMax(), used=spaceUsed(), free=cap-used;
   const nextCap=SPACE[S.unlocked+1];
-  const b=modal('施設',`<p>空きスペース <b style="font-size:18px">${free}</b> / ${cap}${nextCap?`<br><span class="note">次の大会に進むと ${nextCap} まで広がります</span>`:''}</p><div class="sec">建てる</div>`+Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}</div></div><div style="text-align:right;white-space:nowrap"><b>${facCost(k)}万</b><br><span class="note">スペース${v.size}</span></div></div>`).join('')+
+  const b=modal('施設',`<p>空きスペース <b style="font-size:18px">${free}</b> / ${cap}${nextCap?`<br><span class="note">次の大会に進むと ${nextCap} まで広がります</span>`:''}</p><div class="sec">建てる</div>`+Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}${facIncome(k)?`<br><span class="good">1日 約${facIncome(k).toFixed(1)}万円の収入</span>`:''}</div></div><div style="text-align:right;white-space:nowrap"><b>${facCost(k)}万</b><br><span class="note">スペース${v.size}</span></div></div>`).join('')+
     (S.fac.length?`<div class="sec">建てた施設（タップで撤去）</div>`+S.fac.map((f,i)=>`<div class="row" data-rm="${i}"><canvas data-fac="${f.t}" width="16" height="16" style="width:24px;height:24px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm" style="font-size:14px">${FAC[f.t].name}</div><div class="sub">スペース${FAC[f.t].size}</div></div></div>`).join(''):'')+
     `<p class="note">走り込みには施設はいりません。いまの大会では施設収入が×${inc}になります。</p>`);
   b.querySelectorAll('canvas[data-fac]').forEach(c=>drawFac(c.getContext('2d'),c.dataset.fac,0,0));
@@ -1105,7 +1154,7 @@ function ending(){
 }
 
 /* ---------- match screen ---------- */
-const mcv=$('#mcv'),mctx=mcv.getContext('2d'); mctx.imageSmoothingEnabled=false;
+const mcv=$('#mcv'),mctx=mcv.getContext('2d'); mctx.imageSmoothingEnabled=false; mctx.setTransform(2,0,0,2,0,0);
 const mbg=document.createElement('canvas'); mbg.width=MW; mbg.height=MH;
 drawField(mbg.getContext('2d'),0,0,MW,MH,88,178,34);
 let M=null;
@@ -1310,10 +1359,10 @@ document.addEventListener('keydown',e=>{const k={ArrowUp:'up',ArrowDown:'down',A
 function tickClock(){const d=new Date(); $('#clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 tickClock(); setInterval(tickClock,15000);
 function drawIcons(){
-  document.querySelectorAll('canvas[data-ic]').forEach(c=>{const g=c.getContext('2d'); g.imageSmoothingEnabled=false; g.clearRect(0,0,18,18);
+  document.querySelectorAll('canvas[data-ic]').forEach(c=>{c.width=36; c.height=36; const g=c.getContext('2d'); g.imageSmoothingEnabled=false; g.setTransform(2,0,0,2,0,0); g.clearRect(0,0,18,18);
     switch(c.dataset.ic){
       case 'cup': fr(g,3,2,1,14,'#5a4a3a'); for(let y=0;y<4;y++)for(let x=0;x<5;x++) fr(g,4+x*2,3+y*2,2,2,(x+y)%2?'#fff':'#222'); fr(g,4,11,10,1,'#222'); break;
-      case 'players': g.drawImage(sprite({sk:1,hc:0,hs:0,ey:1,mo:1,gl:0,mu:0,bd:0,bl:1,bu:1},{c:S?S.color:'#d13b3b',u:'#fafafa',p:'#e4e4e4'},{}),2,0); break;
+      case 'players': g.drawImage(sprite({sk:1,hc:0,hs:0,ey:1,mo:1,gl:0,mu:0,bd:0,bl:1,bu:1},{c:S?S.color:'#d13b3b',u:'#fafafa',p:'#e4e4e4'},{}),2,0,LSW,LSH); break;
       case 'fac': drawFac(g,'stall',1,1); break;
       case 'scout': disc(g,7,7,5,'#2a2a2a'); disc(g,7,7,3,'#9fd4ff'); fr(g,6,5,2,1,'#fff'); for(let i=0;i<5;i++) fr(g,11+i,11+i,2,2,'#6b3f1f'); break;
       case 'rec': fr(g,4,3,10,6,'#f0b400'); fr(g,2,4,2,3,'#f0b400'); fr(g,14,4,2,3,'#f0b400'); fr(g,6,9,6,2,'#d99a00'); fr(g,8,11,2,3,'#d99a00'); fr(g,5,14,8,2,'#7a4a22'); fr(g,6,4,2,3,'#fff3b0'); break;
@@ -1344,7 +1393,7 @@ function loop(now){
 }
 
 /* ---------- title ---------- */
-const tcv=$('#tcv'),tctx=tcv.getContext('2d'); let tcol=COLORS[0], tt=0;
+const tcv=$('#tcv'),tctx=tcv.getContext('2d'); tctx.imageSmoothingEnabled=false; tctx.setTransform(2,0,0,2,0,0); let tcol=COLORS[0], tt=0;
 const tguys=[0,1,2].map(()=>({look:makeLook()}));
 function drawTitle(dt){
   tt+=dt; const g=tctx; fr(g,0,0,96,32,'#62b44d'); fr(g,0,25,96,7,'#c99659'); fr(g,0,24,96,1,'#8a6a3d');
