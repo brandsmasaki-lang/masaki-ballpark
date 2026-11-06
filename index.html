@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1c8be0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ボールパーク">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%;background:#15171c}
+</style>
+<title>MASAKIボールパーク</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap">
+<style>
+/* layout: one-screen portrait game. HUD window, pixel ballpark map, news ticker, command buttons; menus open as framed windows */
+:root{
+  --sky:#3d6fb8; --sky-deep:#26497f;
+  --win:#fff6de; --win-ink:#33220f; --win-line:#3a2714; --win-sub:#f3e1b8; --win-dash:#d3b585;
+  --head:#e8823a; --head-ink:#ffffff;
+  --btn:#ffd45c; --btn-sub:#f6e7c4; --btn-ink:#33220f; --btn-off:#ddd3bf;
+  --good:#23803a; --bad:#c8402f; --muted:#7a6244; --money:#23803a;
+  --ticker:#1e2943; --ticker-ink:#ffeaa8;
+  --board:#1f4d2b; --board-ink:#f4fbef; --board-hi:#ffe14a;
+  --font-ui:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",sans-serif;
+  --font-pixel:"DotGothic16","M PLUS Rounded 1c",monospace;
+  color-scheme: light;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+table{color:inherit;font:inherit}
+body{background:var(--sky);color:var(--win-ink);font-family:var(--font-ui);font-weight:500;font-size:15px;margin:0;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-font-smoothing:antialiased}
+b,strong{font-weight:800}
+#app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:6px;box-sizing:border-box;padding-block:6px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hud{background:var(--win);border:3px solid var(--win-line);border-radius:10px;padding:5px 10px 6px;font-size:14px;display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-variant-numeric:tabular-nums;line-height:1.35}
+.hud .big{font-size:17px;font-weight:800}
+.hud .r{text-align:right}
+.hud .money{color:var(--money)}
+.hud .money.neg{color:var(--bad)}
+.hud .wide{grid-column:1/3;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud .wide b{color:var(--win-ink)}
+.prog{grid-column:1/3;height:5px;background:var(--win-sub);border-radius:3px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--head)}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.cwrap{position:relative;border:3px solid var(--win-line);border-radius:8px;overflow:hidden;background:#7cc35f}
+.cwrap canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.fl{position:absolute;transform:translate(-50%,-100%);font-size:13px;font-weight:800;color:#fff;white-space:nowrap;text-shadow:1px 0 #3a2714,-1px 0 #3a2714,0 1px #3a2714,0 -1px #3a2714,1px 1px #3a2714;animation:fl 1.4s ease-out forwards}
+.fl.up{color:#ffe14a}.fl.money{color:#a6ff8f}.fl.zz{color:#cfe3ff}.fl.big{font-size:18px}
+@keyframes fl{from{opacity:1;margin-top:0}70%{opacity:1}to{opacity:0;margin-top:-22px}}
+.hint{position:absolute;left:6px;right:6px;bottom:6px;background:var(--ticker);color:var(--ticker-ink);border:2px solid var(--win-line);border-radius:8px;font-size:14px;padding:5px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;pointer-events:auto}
+.ticker{background:var(--ticker);color:var(--ticker-ink);border:3px solid var(--win-line);border-radius:8px;padding:5px 10px;font-size:14px;min-height:1.5em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.btn{font-family:inherit;font-weight:800;font-size:16px;background:var(--btn);color:var(--btn-ink);border:3px solid var(--win-line);border-radius:8px;padding:8px 10px;box-shadow:0 3px 0 var(--win-line);cursor:pointer;line-height:1.25}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--win-line)}
+.btn.sub{background:var(--btn-sub)}
+.btn.on{background:var(--head);color:var(--head-ink)}
+.btn.off{background:var(--btn-off);color:var(--muted)}
+.btn.sm{font-size:14px;padding:4px 10px;border-width:2px;box-shadow:0 2px 0 var(--win-line)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.menu .btn{padding:10px 4px}
+.ov{position:fixed;inset:0;background:rgba(18,22,40,.55);display:flex;align-items:center;justify-content:center;z-index:30;box-sizing:border-box;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.win{background:var(--win);border:3px solid var(--win-line);border-radius:10px;box-shadow:0 4px 0 var(--win-line);width:100%;max-width:430px;max-height:100%;display:flex;flex-direction:column}
+.win h2{margin:0;background:var(--head);color:var(--head-ink);font-size:17px;font-weight:800;padding:7px 12px;border-bottom:3px solid var(--win-line);border-radius:7px 7px 0 0;letter-spacing:.04em}
+.wb{overflow:auto;padding:12px;font-size:15px;line-height:1.6;-webkit-overflow-scrolling:touch}
+.wb p{margin:6px 0}
+.wf{display:flex;gap:8px;padding:9px 12px;border-top:2px dashed var(--win-dash);justify-content:flex-end;flex-wrap:wrap}
+.row{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:2px dashed var(--win-dash);cursor:pointer}
+.row:last-child{border-bottom:0}
+.row.lock{opacity:.5;cursor:default}
+.row.cur{background:var(--win-sub);border-radius:6px}
+.row .grow{flex:1;min-width:0}
+.row .nm{font-size:16px;font-weight:800}
+.row .sub{font-size:13px;color:var(--muted);line-height:1.5}
+.row canvas.pic{width:28px;height:36px;image-rendering:pixelated;flex:none}
+.rk{display:inline-block;min-width:1.25em;text-align:center;color:#fff;border-radius:4px;padding:0 3px;font-size:13px;font-weight:800;line-height:1.45;text-shadow:1px 1px 0 rgba(0,0,0,.3)}
+.fat{display:inline-block;width:44px;height:7px;background:var(--win-sub);border:1px solid var(--win-line);vertical-align:middle;border-radius:2px;overflow:hidden}
+.fat i{display:block;height:100%}
+.stat{display:grid;grid-template-columns:5.4em 1.7em 3.6em 1fr;align-items:center;gap:6px;margin:5px 0;font-variant-numeric:tabular-nums}
+.bar{height:9px;background:var(--win-sub);border:1px solid var(--win-line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--head)}
+.note{font-size:13px;color:var(--muted)}
+.bad{color:var(--bad)}.good{color:var(--good)}
+.sec{font-size:13px;color:var(--muted);margin:10px 0 6px;font-weight:800}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.opt{display:block;width:100%;text-align:left;font-size:15px;padding:7px 10px}
+.opt small{display:block;font-size:12px;font-weight:500;opacity:.9;line-height:1.4}
+table.st{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.st th,table.st td{padding:4px 3px;border-bottom:2px dashed var(--win-dash);text-align:center}
+select{font-family:inherit;font-size:15px;border:2px solid var(--win-line);border-radius:6px;background:var(--btn-sub);color:var(--win-ink);padding:3px 6px}
+.portrait{width:56px;height:72px;image-rendering:pixelated;flex:none;background:var(--win-sub);border:2px solid var(--win-line);border-radius:6px}
+/* match screen */
+#match{position:fixed;inset:0;background:var(--sky-deep);z-index:20;display:flex;justify-content:center;box-sizing:border-box;padding-block:max(6px,env(safe-area-inset-top,0px)) max(6px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mwrap{width:100%;max-width:480px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.sbw{background:var(--board);color:var(--board-ink);border:3px solid var(--win-line);border-radius:8px;padding:4px 6px;font-size:13px;overflow-x:auto}
+table.sb{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.sb th,table.sb td{text-align:center;padding:1px 2px;font-weight:700}
+table.sb th{color:#bfe0c4;font-size:11px}
+table.sb td.tn{text-align:left;white-space:nowrap}
+table.sb td.tn i{display:inline-block;width:9px;height:9px;margin-right:4px;border:1px solid #000;vertical-align:-1px}
+table.sb td.tot{color:var(--board-hi);font-size:15px}
+.sbst{display:flex;justify-content:space-between;padding:2px 2px 0;color:#d6ecd9;font-weight:700}
+#mstage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.banner{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:24px;font-weight:800;color:#fff;white-space:nowrap;text-shadow:2px 0 #3a2714,-2px 0 #3a2714,0 2px #3a2714,0 -2px #3a2714,2px 2px #3a2714;animation:pop .22s ease-out}
+.banner.big{font-size:32px;color:#ffe14a}
+@keyframes pop{from{transform:translate(-50%,-50%) scale(.5)}to{transform:translate(-50%,-50%) scale(1)}}
+.mlog{background:var(--ticker);color:var(--ticker-ink);border:3px solid var(--win-line);border-radius:8px;padding:4px 10px;font-size:13px;line-height:1.55;height:4.65em;overflow:hidden}
+.mlog div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mlog div:first-child{color:#fff}
+.mctl{display:flex;gap:6px}
+.mctl .btn{flex:1;font-size:14px;padding:7px 2px}
+.mcmd{background:var(--win);border:3px solid var(--win-line);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:6px}
+.mcmd .lbl{font-size:12px;color:var(--muted);font-weight:800}
+.mcmd .opts{display:flex;gap:5px}
+.mcmd .opts .btn{flex:1;font-size:14px;padding:6px 2px}
+#swing{font-size:22px;padding:12px;background:#ff6a4d;color:#fff}
+#swing.ready{animation:pulse .5s ease-in-out infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.18)}}
+/* title */
+#title{position:fixed;inset:0;background:var(--sky);z-index:40;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px;overflow:auto}
+.tcard{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.logo{font-family:var(--font-pixel);font-size:42px;line-height:1;color:#fff;letter-spacing:.04em;text-shadow:3px 3px 0 var(--win-line)}
+.logo small{display:block;font-size:24px;color:var(--btn);margin-top:6px;letter-spacing:.2em}
+.tsub{color:#e6efff;font-size:14px;line-height:1.6}
+#tcv{width:336px;height:112px;image-rendering:pixelated;max-width:100%}
+.tform{background:var(--win);border:3px solid var(--win-line);border-radius:10px;padding:12px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;text-align:left}
+.tform label{font-size:13px;color:var(--muted);font-weight:800}
+.tform input{font-family:inherit;font-weight:700;font-size:16px;border:2px solid var(--win-line);border-radius:6px;padding:7px 9px;background:#fff;color:var(--win-ink);width:100%;box-sizing:border-box}
+.sw{display:flex;gap:8px;flex-wrap:wrap}
+.sw button{width:36px;height:36px;border:3px solid var(--win-line);border-radius:8px;cursor:pointer}
+.sw button.on{outline:3px solid var(--head);outline-offset:2px}
+.tbtns{display:flex;flex-direction:column;gap:8px;width:100%}
+.err{color:var(--bad);font-size:13px;min-height:1em}
+.brk{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:5px;margin:8px 0;font-size:12px;line-height:1.45}
+.brc{display:flex;flex-direction:column;justify-content:space-around;gap:5px;min-width:0}
+.brh{font-weight:800;color:var(--muted);text-align:center}
+.brm{border:2px solid var(--win-dash);border-radius:6px;padding:2px 4px;background:#fff;min-width:0}
+.brm.me{border-color:var(--head)}
+.brm div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brm .w{font-weight:800}.brm .l{opacity:.45}
+.brm .sc{font-size:11px;color:var(--muted);text-align:right}
+.prow{display:flex;align-items:center;gap:6px;padding:5px 4px;border-bottom:2px dashed var(--win-dash)}
+.prow.picked{background:#ffe7c2;border-radius:6px}
+.prow .grow{flex:1;min-width:0}
+.prow .nm{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .btn.sm{padding:4px 6px;min-width:2.6em}
+.prow canvas.pic{width:28px;height:36px;image-rendering:pixelated;flex:none}
+.bso{display:inline-flex;gap:8px;align-items:center}
+.bso i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#123a20;border:1px solid #0a2414;margin-left:2px;vertical-align:-1px}
+.bso .bb i.on{background:#6fe08a}.bso .ss i.on{background:#ffd23a}.bso .oo i.on{background:#ff5a4a}
+/* device-style frame: status bar on top, game view, controller pad at the bottom */
+body{background:#15171c}
+#app{padding:0;gap:0;max-width:480px}
+#screen{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--sky);overflow:hidden}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1c8be0;border-bottom:3px solid #0c4f8a;padding:5px max(12px,env(safe-area-inset-right,0px)) 5px max(12px,env(safe-area-inset-left,0px))}
+.date{color:#fff;font-weight:800;font-size:15px;white-space:nowrap}
+.date b{font-size:24px;color:#ffe14a;text-shadow:2px 0 #23314a,-2px 0 #23314a,0 2px #23314a,0 -2px #23314a,2px 2px #23314a;margin:0 2px 0 4px}
+.date small{font-size:13px;margin-left:4px}
+.moneybox{background:#fff;border:3px solid #0c4f8a;border-radius:10px;padding:1px 10px;font-weight:800;font-size:19px;text-align:right;color:#1b1b1b;white-space:nowrap;font-variant-numeric:tabular-nums}
+.moneybox.neg{color:var(--bad)}
+.moneybox small{font-size:13px;margin-left:2px}
+.subtop{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#0f5aa0;color:#e2eeff;font-size:13px;padding:3px max(12px,env(safe-area-inset-right,0px)) 3px max(12px,env(safe-area-inset-left,0px))}
+.subtop b{color:#fff;font-size:15px}
+.subtop .prog{flex:1;max-width:120px;height:6px;background:#0a3f73}
+.subtop .prog i{background:#ffe14a}
+#stage{padding:6px 8px}
+.side{position:absolute;left:6px;top:6px;display:flex;flex-direction:column;gap:3px;background:#e9edf2;border:3px solid #39414d;border-radius:6px;padding:4px;z-index:5}
+.si{display:flex;align-items:center;gap:8px;width:148px;background:#fff;border:2px solid #b9c2cc;border-radius:4px;padding:3px 8px 3px 3px;font-family:inherit;font-weight:800;font-size:17px;color:#222;cursor:pointer;text-align:left}
+.si canvas{width:30px;height:30px;image-rendering:pixelated;background:#f6dc8e;border-radius:3px;flex:none}
+.si.nav{background:#e64545;color:#fff;border-color:#a32a2a}
+.si.nav::after{content:'◀';margin-left:auto;font-size:12px}
+.info{display:flex;justify-content:space-between;gap:8px;background:#fff6de;border-top:3px solid #3a2714;font-size:13px;padding:4px max(12px,env(safe-area-inset-right,0px)) 4px max(12px,env(safe-area-inset-left,0px));white-space:nowrap}
+.info span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+#screen .ticker{border-radius:0;border-width:3px 0 0;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+.nav{outline:3px solid #ff6a4d;outline-offset:1px}
+.pad{flex:none;background:#24262b;border-top:4px solid #5b606a;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:12px max(16px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.pl,.pr{display:flex;flex-direction:column;gap:12px;min-width:0}
+.pbtn{font-family:inherit;font-weight:800;font-size:16px;color:#222;background:linear-gradient(#f6f7f9,#c6ccd3);border:2px solid #0d0e10;border-radius:7px;box-shadow:inset 0 -3px 0 #98a0aa,0 2px 0 #000;padding:10px 4px;width:100%;cursor:pointer;white-space:nowrap}
+.pbtn:active{transform:translateY(1px);box-shadow:inset 0 -1px 0 #98a0aa}
+.pbtn.sm{font-size:13px;padding:6px 4px}
+.dpad{position:relative;width:148px;height:148px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#f4f6f8,#b3bac3 58%,#78808a);border:3px solid #0d0e10;box-shadow:0 3px 0 #000}
+.dpad::before{content:'';position:absolute;inset:10px;border-radius:50%;background:conic-gradient(from 45deg,transparent 0 2deg,#6f7781 2deg 4deg,transparent 4deg 90deg,#6f7781 90deg 92deg,transparent 92deg 180deg,#6f7781 180deg 182deg,transparent 182deg 270deg,#6f7781 270deg 272deg,transparent 272deg);opacity:.7;pointer-events:none}
+.d{position:absolute;width:48px;height:48px;background:transparent;border:0;cursor:pointer;padding:0}
+.d.up{left:47px;top:0}.d.down{left:47px;bottom:0}.d.left{left:0;top:47px}.d.right{right:0;top:47px}
+.d::before{content:'';position:absolute;left:50%;top:50%;width:0;height:0;border:8px solid transparent;transform:translate(-50%,-50%)}
+.d.up::before{border-bottom-color:#5d646e;margin-top:-4px}.d.down::before{border-top-color:#5d646e;margin-top:4px}
+.d.left::before{border-right-color:#5d646e;margin-left:-4px}.d.right::before{border-left-color:#5d646e;margin-left:4px}
+.d:active::before{filter:brightness(.6)}
+.dc{position:absolute;left:41px;top:41px;width:60px;height:60px;border-radius:50%;border:4px solid #1f8f6e;background:radial-gradient(circle,#9aa2ab 1px,transparent 1.6px) 0 0/5px 5px,radial-gradient(circle at 50% 38%,#fbfcfd,#b7bdc5);box-shadow:0 0 0 3px #0d0e10;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px;color:#33404d;padding:0;line-height:1.1}
+.dc:active{filter:brightness(.92)}
+.dc.ready{border-color:#ff6a4d;animation:pulse .45s ease-in-out infinite alternate}
+.clock{font-family:var(--font-pixel);color:#ffcf3a;font-size:22px;text-align:right;letter-spacing:.06em;line-height:1}
+.brand{font-size:10px;color:#6f7680;text-align:center;letter-spacing:.18em}
+#match{position:absolute;inset:0;padding:6px 8px;z-index:20}
+.ov{position:absolute;z-index:30}
+.mcmd .opts .btn.nav{outline:3px solid #ff6a4d}
+@media (prefers-reduced-motion: reduce){.fl,.banner,.dc.ready{animation:none}}
+</style>
+
+<div id="app">
+ <div id="screen">
+  <header class="top">
+    <div class="date"><b id="tY">1</b>年<b id="tM">4</b>月<b id="tW">1</b>週<small id="tD">月曜</small></div>
+    <div class="moneybox" id="hMoneyBox"><span id="hMoney">0</span><small>万円</small></div>
+  </header>
+  <div class="subtop"><span>人気 <b id="hPop">0</b></span><span class="prog"><i id="hProg"></i></span><span>残り <b id="hYears">12</b> 年</span></div>
+  <div id="stage">
+    <div class="cwrap" id="hwrap">
+      <canvas id="hcv" width="176" height="192" aria-label="球場とまわりの施設"></canvas>
+      <div class="fx" id="hfx"></div>
+      <nav class="side" id="side" hidden>
+        <button class="si" data-go="cup"><canvas data-ic="cup" width="18" height="18"></canvas><span>大会</span></button>
+        <button class="si" data-go="players"><canvas data-ic="players" width="18" height="18"></canvas><span>選手</span></button>
+        <button class="si" data-go="fac"><canvas data-ic="fac" width="18" height="18"></canvas><span>施設</span></button>
+        <button class="si" data-go="scout"><canvas data-ic="scout" width="18" height="18"></canvas><span>スカウト</span></button>
+        <button class="si" data-go="rec"><canvas data-ic="rec" width="18" height="18"></canvas><span>記録</span></button>
+      </nav>
+      <div class="hint" id="hint" hidden><span id="hintTxt"></span><button class="btn sm sub" id="hintX">やめる</button></div>
+    </div>
+  </div>
+  <div class="info"><span id="hCup"></span><span id="hCmd"></span></div>
+  <div class="ticker" id="ticker">ようこそ！</div>
+  <div id="match" hidden>
+  <div class="mwrap">
+    <div class="sbw"><div id="sb"></div></div>
+    <div id="mstage"><div class="cwrap" id="mwrapc"><canvas id="mcv" width="176" height="200" aria-label="試合の様子"></canvas><div class="fx" id="mfx"></div></div></div>
+    <div class="mlog" id="mlog"></div>
+    <div class="mcmd" id="mOff" hidden>
+      <div class="lbl" id="offLbl">1球ごとに狙いを決めよう</div>
+      <div class="opts" id="offOpts">
+        <button class="btn sub" data-bt="hit">ヒット狙い</button>
+        <button class="btn sub" data-bt="hr">ホームラン狙い</button>
+        <button class="btn sub" data-bt="walk">フォアボール狙い</button>
+      </div>
+    </div>
+    <div class="mcmd" id="mDef" hidden>
+      <div class="lbl">守りの作戦（投げる球を選ぶ）</div>
+      <div class="opts" id="defOpts">
+        <button class="btn sub" data-pt="normal">ストレート</button>
+        <button class="btn sub" data-pt="break">変化球</button>
+        <button class="btn sub" data-pt="full">全力投球</button>
+        <button class="btn sub" id="relief">投手交代</button>
+      </div>
+    </div>
+    <div class="mctl">
+      <button class="btn sub" data-ms="1">×1</button>
+      <button class="btn sub" data-ms="2">×2</button>
+      <button class="btn sub" data-ms="4">×4</button>
+      <button class="btn sub" id="mAuto">手動</button>
+      <button class="btn" id="mSkip">結果へ</button>
+    </div>
+  </div>
+  </div>
+  <div class="ov" id="ov" hidden><div class="win" role="dialog" aria-modal="true"><h2 id="ovT"></h2><div class="wb" id="ovB"></div><div class="wf" id="ovF"></div></div></div>
+ </div>
+ <div class="pad">
+   <div class="pl"><button class="pbtn" id="pMenu">メニュー</button><button class="pbtn sm" id="pSpeed">▶ ふつう</button></div>
+   <div class="dpad">
+     <button class="d up" data-d="up" aria-label="上"></button><button class="d down" data-d="down" aria-label="下"></button>
+     <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
+     <button class="dc" id="pOK" aria-label="決定">決定</button>
+   </div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK</div></div>
+ </div>
+</div>
+
+<div id="title">
+  <div class="tcard">
+    <div class="logo">MASAKI<small>ボールパーク</small></div>
+    <canvas id="tcv" width="96" height="32"></canvas>
+    <div class="tsub">12年間でチームを世界一へ。<br>最後にいくら資金を貯めたかがスコアです。<br><span id="tBest"></span></div>
+    <div class="tbtns" id="tCont" hidden><button class="btn" id="tLoad">つづきから</button></div>
+    <div class="tform">
+      <div><label for="tName">チームの名前</label><input id="tName" maxlength="10" value="マサキドッツ"></div>
+      <div><label>チームカラー</label><div class="sw" id="tSw"></div></div>
+      <div class="err" id="tErr"></div>
+      <button class="btn" id="tNew">はじめから</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEY='masaki-ballpark-save-v3', BEST_KEY='masaki-ballpark-best';
+const LW=176,LH=192,MW=176,MH=200,DAY_MS=1500,MAX_ROSTER=16,YEAR_DAYS=336,TOTAL_YEARS=12;
+const WD='月火水木金土日';
+const SURN='佐藤 鈴木 高橋 田中 伊藤 渡辺 山本 中村 小林 加藤 吉田 山田 佐々木 山口 松本 井上 木村 林 清水 山崎 森 池田 橋本 阿部 石川 前田 藤田 小川 岡田 後藤 長谷川 村上 近藤 石井 坂本 遠藤 青木 藤井 西村 福田 太田 三浦 岡本 松田 中川 原田 小野 竹内 金子 和田 中山 石田 上田 森田 柴田 酒井 工藤 横山 宮崎 宮本 内田 高木 安藤 島田 谷口 大野 丸山 今井 河野 藤原 武田 村田 上野 杉山 増田 平野 大塚 千葉 久保 松井 小島 岩崎 桜井 野口 松尾 野村 木下 菊地 佐野 大西 杉本 新井 浜田 菅原 市川 水野 小松 高野 南 北村 東 西田'.split(' ');
+const POS=['捕','一','二','三','遊','左','中','右'];
+const POSN={投:'ピッチャー',捕:'キャッチャー',一:'ファースト',二:'セカンド',三:'サード',遊:'ショート',左:'レフト',中:'センター',右:'ライト'};
+const STATN={meet:'ミート',pow:'パワー',spd:'走力',def:'守備',velo:'球速',ctl:'制球',sta:'スタミナ',brk:'変化球'};
+const FSTATS=['meet','pow','spd','def'],PSTATS=['velo','ctl','sta','brk'];
+const COLORS=['#d13b3b','#2a5bd7','#1f9e5a','#e0a020','#8a3fc1','#e05a9a'];
+const OPP_PALS=[{c:'#2f7fd8',u:'#eaf3ff',p:'#d3e2f3'},{c:'#7a4a22',u:'#fff1dc',p:'#e6d3b5'},{c:'#3b3f8f',u:'#e6e7f5',p:'#c6c8e4'},{c:'#f0a020',u:'#3c3c3c',p:'#4a4a4a'},{c:'#5c5c5c',u:'#f2f2f2',p:'#cfcfcf'},{c:'#1d8a7a',u:'#e6f6f2',p:'#cde8e2'},{c:'#b0306a',u:'#fbeaf2',p:'#efd2df'},{c:'#20304f',u:'#d9e2f2',p:'#c4cfe4'},{c:'#c2482a',u:'#2a2a2a',p:'#333'},{c:'#6a8a1e',u:'#f1f6e2',p:'#dbe5c2'}];
+const LV=[
+  {name:'練習試合',rounds:1,req:20,opp:21,prize:10,inc:1,exp:1,cost:1},
+  {name:'市内野球大会',rounds:2,req:30,opp:31,prize:25,inc:1.4,exp:1.1,cost:1.3},
+  {name:'県大会',rounds:3,req:40,opp:41,prize:50,inc:1.9,exp:1.2,cost:1.7},
+  {name:'全国大会',rounds:3,req:50,opp:51,prize:100,inc:2.5,exp:1.35,cost:2.2},
+  {name:'アジア大会',rounds:4,req:60,opp:59,prize:180,inc:3.2,exp:1.5,cost:3},
+  {name:'ヨーロッパ大会',rounds:4,req:60,opp:63,prize:260,inc:4,exp:1.65,cost:4},
+  {name:'南米大会',rounds:4,req:70,opp:68,prize:360,inc:5,exp:1.8,cost:5},
+  {name:'北米大会',rounds:4,req:70,opp:73,prize:500,inc:6.2,exp:2,cost:6.5},
+  {name:'ワールドカップ',rounds:5,req:80,opp:78,prize:750,inc:7.5,exp:2.2,cost:8},
+  {name:'オリンピック',rounds:5,req:80,opp:83,prize:1100,inc:9,exp:2.4,cost:10},
+  {name:'WBC',rounds:5,req:90,opp:89,prize:1800,inc:11,exp:2.7,cost:13}];
+const OPP=[
+  ['近所の草野球団','商店街ファイターズ','町内会オールスターズ','大学OBクラブ','日曜ベースボール部'],
+  ['東町クラブ','西町ブレーブス','南区ドルフィンズ','北区タイガース','中央ライオネル'],
+  ['県立工業OB','港湾ガルズ','高原ホークス','川辺カワセミーズ','県庁ナインズ'],
+  ['北海道代表','東北代表','関東代表','関西代表','九州代表','四国代表'],
+  ['韓国代表','台湾代表','中国代表','オーストラリア代表','フィリピン代表'],
+  ['オランダ代表','イタリア代表','イギリス代表','ドイツ代表','スペイン代表'],
+  ['ベネズエラ代表','コロンビア代表','ブラジル代表','ニカラグア代表','パナマ代表'],
+  ['アメリカ代表','カナダ代表','メキシコ代表','キューバ代表','プエルトリコ代表'],
+  ['アメリカ代表','ドミニカ代表','キューバ代表','韓国代表','ベネズエラ代表'],
+  ['アメリカ代表','ドミニカ代表','日本代表','メキシコ代表','台湾代表'],
+  ['アメリカ代表','ドミニカ代表','日本代表','ベネズエラ代表','プエルトリコ代表']];
+const FAC={
+  cage:{name:'バッティングケージ',cost:150,desc:'ミートとパワーの練習効率が上がる'},
+  pen:{name:'ブルペン',cost:150,desc:'投手の練習効率が上がる'},
+  track:{name:'ランニングコース',cost:120,desc:'走力の練習効率が上がる'},
+  knock:{name:'ノック場',cost:120,desc:'守備の練習効率が上がる'},
+  dorm:{name:'選手寮',cost:250,desc:'選手の疲れがたまりにくくなる'},
+  stall:{name:'屋台',cost:80,desc:'お客さんが買い物をして毎日お金が入る'},
+  goods:{name:'グッズショップ',cost:220,desc:'毎日お金が入り、人気も少しずつ上がる'},
+  stand:{name:'観客席',cost:300,desc:'試合に入れるお客さんが800人増える'},
+  board:{name:'広告看板',cost:100,desc:'毎日の広告収入と、人気が少しずつ上がる'}};
+const MENU={
+  self:{name:'自主練',base:3,cost:0,fat:1,desc:'お金はかからないが、伸びは少なめ'},
+  normal:{name:'通常練習',base:8,cost:15,fat:3,desc:'コーチをつけたふつうの練習'},
+  camp:{name:'強化合宿',base:18,cost:60,fat:7,desc:'大きく伸びるが、お金がかかり疲れやすい'},
+  rest:{name:'休養',base:0,cost:0,fat:-15,desc:'練習はお休み。疲れをしっかり取る'},
+  sales:{name:'営業回り',base:0,cost:0,fat:-5,desc:'スポンサーをまわってお金と人気をかせぐ'}};
+const FOCUS={bal:'バランス',bat:'打撃',fld:'守備・走塁',pit:'投手'};
+
+/* ---------- sprites (14x18, built from parts) ---------- */
+const SW=14,SH=18,INK='#1d140c';
+const SKIN=['#f7d3ae','#efbf91','#d49a6a','#a8704a'];
+const HAIR=['#2a1d14','#5a3520','#8a5a2b','#d9a63c','#b8452a','#6b6b78'];
+const SHIRT=['#e85d5d','#6fb0ff','#ffd45c','#9be37a','#c88bf0','#ff9f5a','#f2f2f2','#4fc1b0'];
+const PANTS=['#3b4a7a','#5c4a3a','#3a3a3a','#7a6a9a','#2f5d4a'];
+function shade(hex,a){const n=parseInt(hex.slice(1),16);const f=v=>clamp(Math.round(a<0?v*(1+a):v+(255-v)*a),0,255);return '#'+((1<<24)|(f(n>>16)<<16)|(f(n>>8&255)<<8)|f(n&255)).toString(16).slice(1);}
+function makeLook(){return {sk:ri(0,3),hc:ri(0,5),hs:ri(0,5),ey:ri(0,5),mo:ri(0,3),gl:Math.random()<0.13?1:0,mu:Math.random()<0.1?1:0,bd:Math.random()<0.08?1:0,bl:Math.random()<0.25?1:0,bu:pick([0,1,1,1,2])};}
+const sprCache=new Map();
+function sprite(look,pal,o){
+  const key=`${look.sk}${look.hc}${look.hs}${look.ey}${look.mo}${look.gl}${look.mu}${look.bd}${look.bl}${look.bu}|${pal.c}${pal.u}${pal.p}|${o.civ?1:0}${o.frame||0}${o.cat?1:0}${o.glove?1:0}`;
+  let c=sprCache.get(key); if(c) return c;
+  const px=Array.from({length:SH},()=>Array(SW).fill(null));
+  const P=(x,y,col)=>{if(x>=0&&x<SW&&y>=0&&y<SH)px[y][x]=col;};
+  const R=(x0,x1,y,col)=>{for(let x=x0;x<=x1;x++)P(x,y,col);};
+  const skin=SKIN[look.sk], skinD=shade(skin,-0.18), hair=HAIR[look.hc];
+  const top=o.civ?hair:pal.c, topD=o.civ?shade(hair,-0.2):shade(pal.c,-0.32);
+  R(5,8,1,top); R(4,9,2,top); R(3,10,3,top);
+  if(o.civ) R(3,10,4,top); else {R(2,11,4,topD); P(6,2,pal.u); P(7,2,pal.u); P(6,3,pal.u);}
+  for(let y=5;y<=8;y++) R(3,10,y,skin); R(4,9,9,skin);
+  switch(look.hs){
+    case 0: P(3,5,hair); P(10,5,hair); break;
+    case 2: for(let y=5;y<=9;y++){P(2,y,hair); P(11,y,hair);} P(3,9,hair); P(10,9,hair); break;
+    case 3: [3,4,5,7,8,10].forEach(x=>P(x,5,hair)); break;
+    case 4: P(2,3,hair); P(11,3,hair); P(1,2,hair); P(12,2,hair); P(3,5,hair); P(10,5,hair); break;
+    case 5: P(2,7,skin); P(11,7,skin); P(3,5,hair); P(10,5,hair); break;
+  }
+  switch(look.ey){
+    case 0: P(5,7,INK); P(8,7,INK); break;
+    case 1: P(5,6,INK); P(5,7,INK); P(8,6,INK); P(8,7,INK); break;
+    case 2: R(4,5,7,INK); R(8,9,7,INK); break;
+    case 3: P(4,7,INK); P(5,6,INK); P(6,7,INK); P(7,7,INK); P(8,6,INK); P(9,7,INK); break;
+    case 4: P(5,7,INK); P(8,7,INK); R(4,5,6,INK); R(8,9,6,INK); break;
+    case 5: P(4,6,INK); P(5,6,'#ffffff'); P(4,7,INK); P(5,7,INK); P(8,6,INK); P(9,6,'#ffffff'); P(8,7,INK); P(9,7,INK); break;
+  }
+  if(look.bl){P(4,8,'#ee8f86'); P(9,8,'#ee8f86');}
+  const mc=shade(skin,-0.45);
+  if(look.mo===1){P(6,9,mc); P(7,9,mc);} else if(look.mo===2){P(6,9,'#a8322a'); P(7,9,'#a8322a');} else if(look.mo===3){R(5,8,9,mc); P(6,9,'#ffffff');}
+  if(look.gl){const gc='#2b2b6a'; R(4,6,6,gc); R(4,6,8,gc); P(4,7,gc); P(6,7,gc); R(7,9,6,gc); R(7,9,8,gc); P(9,7,gc); P(7,7,gc);}
+  if(look.mu) R(5,8,8,hair);
+  if(look.bd){R(3,10,9,hair); P(6,9,mc); P(7,9,mc); R(4,9,10,hair);}
+  if(o.cat){const mk='#55585f'; R(3,10,6,mk); R(3,10,8,mk); P(6,7,mk); P(7,7,mk);}
+  const W=[[5,8],[4,9],[3,10]][look.bu]; const a=W[0], b=W[1];
+  const uni=o.civ?pal.u:pal.u, slv=o.civ?shade(pal.u,-0.2):pal.c;
+  P(6,10,skinD); P(7,10,skinD);
+  for(let y=11;y<=13;y++) R(a,b,y,uni);
+  P(a-1,11,slv); P(a-1,12,slv); P(b+1,11,slv); P(b+1,12,slv); P(a-1,13,skin); P(b+1,13,skin);
+  if(!o.civ){P(6,12,pal.c); P(7,12,pal.c);}
+  if(o.cat){for(let y=11;y<=13;y++) R(a,b,y,'#3b3b4f'); P(6,12,'#7a7a96'); P(7,12,'#7a7a96');}
+  R(a,b,14,o.civ?pal.p:topD);
+  const pant=pal.p, shoe=o.civ?'#4a3326':'#26201c';
+  const lL=[look.bu===2?4:Math.max(a+1,5),6], lR=[7,look.bu===2?9:Math.min(b-1,8)];
+  if(lL[0]>lL[1]) lL[0]=lL[1]; if(lR[1]<lR[0]) lR[1]=lR[0];
+  if(o.frame===1){R(lL[0],lL[1],15,pant); R(lL[0]-1,lL[1],16,shoe); R(lR[0],lR[1],15,pant); R(lR[0],lR[1],16,pant); R(lR[0],lR[1]+1,17,shoe);}
+  else {R(lL[0],lL[1],15,pant); R(lL[0],lL[1],16,pant); R(lL[0]-1,lL[1],17,shoe); R(lR[0],lR[1],15,pant); R(lR[0],lR[1],16,pant); R(lR[0],lR[1]+1,17,shoe);}
+  if(o.glove){const gv='#8a4b1c'; P(a-1,13,gv); P(a-2,13,gv); P(a-1,14,gv); P(a-2,12,gv);}
+  c=document.createElement('canvas'); c.width=SW; c.height=SH; const g=c.getContext('2d');
+  for(let y=0;y<SH;y++) for(let x=0;x<SW;x++){
+    let col=px[y][x];
+    if(!col){ const n=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{const yy=y+dy,xx=x+dx; return yy>=0&&yy<SH&&xx>=0&&xx<SW&&px[yy][xx];}); if(n) col=INK; }
+    if(col){g.fillStyle=col; g.fillRect(x,y,1,1);}
+  }
+  sprCache.set(key,c); return c;
+}
+function myPal(){return {c:S.color,u:'#fafafa',p:'#e4e4e4'};}
+const BAT_READY=[[10,13],[11,12],[11,11],[12,10],[12,9],[12,8],[13,7]];
+const BAT_SWING=[[11,13],[12,13],[13,13],[14,13],[15,13],[16,12],[17,12]];
+function drawGuy(g,p,pal,x,y,frame,bat,pos){
+  const sx=Math.round(x-7),sy=Math.round(y-17);
+  g.drawImage(sprite(p.look,pal,{frame:frame||0,cat:pos==='捕'&&!bat,glove:!bat}),sx,sy);
+  if(bat){g.fillStyle='#c0803e'; (bat==='swing'?BAT_SWING:BAT_READY).forEach(([a,b])=>g.fillRect(sx+a,sy+b,1,1));}
+}
+function drawPortrait(c,p,pal,pos){c.width=SW;c.height=SH; const g=c.getContext('2d'); g.clearRect(0,0,SW,SH); g.drawImage(sprite(p.look,pal,{cat:pos==='捕',glove:false}),0,0);}
+
+/* ---------- pixel helpers ---------- */
+function fr(g,x,y,w,h,c){g.fillStyle=c; g.fillRect(x,y,w,h);}
+function diamond(g,cx,cy,r,c){g.fillStyle=c; for(let dy=-r;dy<=r;dy++){const w=r-Math.abs(dy); g.fillRect(cx-w,cy+dy,2*w+1,1);}}
+function disc(g,cx,cy,r,c){g.fillStyle=c; for(let dy=-r;dy<=r;dy++){const w=Math.floor(Math.sqrt(r*r-dy*dy)); g.fillRect(cx-w,cy+dy,2*w+1,1);}}
+function pline(g,x0,y0,x1,y1,c){g.fillStyle=c; let dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1,e=dx+dy; for(let n=0;n<600;n++){g.fillRect(x0,y0,1,1); if(x0===x1&&y0===y1)break; const e2=2*e; if(e2>=dy){e+=dy;x0+=sx;} if(e2<=dx){e+=dx;y0+=sy;}}}
+function drawField(g,X,Y,w,h,hx,hy,r){
+  g.save(); g.beginPath(); g.rect(X,Y,w,h); g.clip();
+  for(let y=0;y<h;y+=8) fr(g,X,Y+y,w,8,(y/8)%2?'#58a744':'#62b44d');
+  const cy=hy-r;
+  diamond(g,hx,cy,r+8,'#c99659'); diamond(g,hx,cy,r-6,'#5fae49');
+  disc(g,hx,hy,7,'#c99659'); disc(g,hx,cy,4,'#c99659'); fr(g,hx-1,cy,3,1,'#fff');
+  pline(g,hx,hy,hx-260,hy-260,'#f4f4f4'); pline(g,hx,hy,hx+260,hy-260,'#f4f4f4');
+  [[hx+r,cy],[hx,cy-r],[hx-r,cy]].forEach(([x,y])=>fr(g,x-1,y-1,3,3,'#fff'));
+  fr(g,hx-2,hy-1,5,3,'#fff');
+  const cols=['#f2c49b','#e85d5d','#ffd45c','#6fb0ff','#f4f4f4'];
+  for(let x=0;x<w;x++){
+    const t=(x-w/2)/(w/2), fy=Math.round(h*0.06+t*t*h*0.28);
+    fr(g,X+x,Y,1,fy,'#3d3560');
+    for(let yy=1;yy<fy-1;yy+=3) if(((x*7+yy*13)%5)<2) fr(g,X+x,Y+yy,1,1,cols[(x*3+yy)%5]);
+    fr(g,X+x,Y+fy,1,2,'#24502a');
+  }
+  g.restore();
+}
+function drawFac(g,t,x,y){
+  const R=(a,b,w,h,c)=>fr(g,x+a,y+b,w,h,c);
+  const tc=S?S.color:'#d13b3b';
+  R(0,0,16,16,'#7cc35f');
+  switch(t){
+    case 'cage': R(1,1,14,14,'#3a2714'); R(2,2,12,12,'#2f6f3f'); for(let i=4;i<14;i+=3){R(i,2,1,12,'#7cc98d'); R(2,i,12,1,'#7cc98d');} R(7,9,2,2,'#fff'); break;
+    case 'pen': R(1,3,14,11,'#3a2714'); R(2,4,12,9,'#c99659'); R(3,6,3,1,'#fff'); R(10,6,3,1,'#fff'); R(3,10,10,2,'#a7743d'); R(7,8,2,1,'#fff'); break;
+    case 'track': R(1,2,14,12,'#3a2714'); R(2,3,12,10,'#c4553a'); R(5,6,6,4,'#6cbf55'); R(2,5,12,1,'#f0c2b2'); R(2,10,12,1,'#f0c2b2'); R(3,4,1,1,'#fff'); break;
+    case 'knock': R(1,2,14,13,'#3a2714'); R(2,3,12,11,'#c99659'); R(2,3,12,2,'#2f6f3f'); R(4,7,1,6,'#7a4a22'); R(3,12,3,1,'#7a4a22'); R(9,8,2,2,'#fff'); R(12,11,2,2,'#fff'); break;
+    case 'dorm': R(1,2,14,5,'#9b3b2a'); R(2,1,12,1,'#3a2714'); R(1,6,14,1,'#3a2714'); R(1,7,14,8,'#f2e2c0'); R(3,9,3,2,'#6fb0ff'); R(10,9,3,2,'#6fb0ff'); R(7,10,2,5,'#7a4a22'); R(1,15,14,1,'#3a2714'); break;
+    case 'stall': R(2,8,12,7,'#e8c07a'); for(let i=0;i<7;i++) R(1+i*2,4,2,4,i%2?'#fff':'#e04848'); R(1,8,14,1,'#3a2714'); R(4,10,8,1,'#7a4a22'); R(5,9,2,1,'#ffd45c'); R(9,9,2,1,'#e85d5d'); R(2,14,12,1,'#3a2714'); break;
+    case 'goods': R(1,4,14,11,'#f4f0e6'); R(1,3,14,3,'#2a5bd7'); R(1,15,14,1,'#3a2714'); R(3,8,4,4,'#9fd4ff'); R(9,8,4,7,'#7a4a22'); R(13,0,1,4,'#3a2714'); R(10,0,3,2,tc); break;
+    case 'stand': R(0,1,16,14,'#8c8c8c'); for(let i=0;i<4;i++){R(0,3+i*3,16,1,'#5e5e5e'); for(let j=1;j<16;j+=3) R(j,2+i*3,1,1,SHIRT[(i+j)%8]);} R(0,15,16,1,'#3a2714'); break;
+    case 'board': R(7,9,2,6,'#7a4a22'); R(1,2,14,8,'#3a2714'); R(2,3,12,6,'#ffd45c'); R(4,5,8,2,tc); break;
+  }
+}
+
+/* ---------- state ---------- */
+let S=null;
+function uid(){return S.nextId++;}
+/* each player has three abilities shown as F..S: batting, fielding, pitching. Small personal biases make power hitters, speedsters, fireballers */
+const ABIL={bat:'バッティング',fld:'守備',pit:'ピッチング'}, ABS={bat:'打',fld:'守',pit:'投'}, AKEYS=['bat','fld','pit'];
+function mkPlayer(pos,base){
+  const g=d=>clamp(Math.round(base+d+rnd(-10,10)),5,99); const isP=pos==='投';
+  const p={id:uid(),name:pick(SURN),pos,age:ri(18,29),look:makeLook(),tal:+rnd(0.8,1.4).toFixed(2),cond:3,fat:0,
+    bat:g(isP?-22:0),fld:g(0),pit:isP?g(0):g(-28),bias:{m:ri(-8,8),p:ri(-8,8),s:ri(-8,8),v:ri(-4,4),c:ri(-8,8),st:ri(-8,8),b:ri(-8,8)},
+    exp:{},st:{ab:0,h:0,hr:0,rbi:0,w:0,l:0,g:0},car:{ab:0,h:0,hr:0,rbi:0,w:0,l:0,g:0},hist:[]};
+  sync(p); p.sal=salary(p); return p;
+}
+function sync(p){const b=p.bias; p.meet=clamp(p.bat+b.m,1,99); p.pow=clamp(p.bat+b.p,1,99); p.spd=clamp(p.fld+b.s,1,99); p.def=p.fld; p.velo=clamp(Math.round(118+p.pit*0.47+b.v),110,165); p.ctl=clamp(p.pit+b.c,1,99); p.sta=clamp(p.pit+b.st,1,99); p.brk=clamp(p.pit+b.b,1,99);}
+function typeOf(p){const b=p.bias; if(p.pos==='投') return b.v>=2?'速球派':b.b>=4?'変化球派':b.c>=4?'制球派':b.st>=4?'スタミナ型':'バランス型'; return b.p-b.m>=6?'パワー型':b.m-b.p>=6?'アベレージ型':b.s>=5?'俊足型':'バランス型';}
+function ovr(p){return p.pos==='投'?Math.round(p.pit*0.8+p.fld*0.2):Math.round(p.bat*0.6+p.fld*0.4);}
+function salary(p){const o=ovr(p); return Math.round(2+o*o/600);}
+function mkRoster(base){const r=POS.map(pos=>mkPlayer(pos,base)); for(let i=0;i<3;i++) r.push(mkPlayer('投',base)); r.push(mkPlayer(pick(POS),base-4)); return r;}
+function newSave(name,color){
+  S={v:3,name,color,day:0,money:500,pop:10,speed:1,mspeed:2,auto:false,lastPlayed:-1,cmdWeek:-1,cmd:{menu:'normal',picks:[]},recs:{},nextId:1,players:[],fac:[],scouts:[],news:'',lvl:0,unlocked:0,round:0,titles:Array(LV.length).fill(0),rec:{w:0,l:0,d:0},opp:null,maxMoney:500};
+  S.players=mkRoster(30);
+  S.scouts=genScouts();
+  S.news='球団が誕生！ まずは屋台を建ててお金をかせごう';
+}
+function cnt(t){return S.fac.filter(f=>f.t===t).length;}
+function facCost(t){return Math.round(FAC[t].cost*(1+0.6*cnt(t)));}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function loadSave(){try{const s=localStorage.getItem(KEY); return s?JSON.parse(s):null;}catch(e){return null;}}
+function loadBest(){try{return JSON.parse(localStorage.getItem(BEST_KEY)||'null');}catch(e){return null;}}
+function teamStr(players){const a=players.map(ovr).sort((x,y)=>y-x).slice(0,10); return a.reduce((s,v)=>s+v,0)/a.length;}
+function rank(v){return v>=90?'S':v>=80?'A':v>=70?'B':v>=60?'C':v>=50?'D':v>=40?'E':'F';}
+const RKC={S:'#e0457b',A:'#e8723a',B:'#d39a0b',C:'#5aa040',D:'#3d85c6',E:'#7a7a7a',F:'#a5a5a5'};
+function rk(v){const r=rank(v); return `<span class="rk" style="background:${RKC[r]}">${r}</span>`;}
+function statVal(p,k){return k==='velo'?(p.velo-120)*2.2:p[k];}
+const COND=[['↓','#7a4fc4','絶不調'],['↘','#3d85c6','不調'],['→','#c79a12','ふつう'],['↗','#e8723a','好調'],['↑','#d13b3b','絶好調']];
+function condHTML(p){const c=COND[p.cond-1]; return `<b style="color:${c[1]}">${c[0]}︎</b>`;}
+function fatHTML(p){const col=p.fat>70?'#c8402f':p.fat>40?'#e0a020':'#2e8b3e'; return `<span class="fat"><i style="width:${Math.round(p.fat)}%;background:${col}"></i></span>`;}
+const yearOf=d=>Math.floor(d/YEAR_DAYS)+1, doyOf=d=>d%YEAR_DAYS, weekIdx=d=>Math.floor(d/7);
+function monthOf(d){return (Math.floor(doyOf(d)/28)+3)%12+1;}
+function dateStr(d){return `${yearOf(d)}年目 ${monthOf(d)}月${Math.floor((doyOf(d)%28)/7)+1}週 ${WD[d%7]}曜`;}
+function roundName(l,r){return ['1回戦','準決勝','決勝'][r]||'';}
+LV.forEach(l=>l.rounds=3);
+[['公園キャッチボール会'],['市役所スワローズ'],['県北ブルズ'],[],['インドネシア代表'],['フランス代表'],['アルゼンチン代表'],['ジャマイカ代表'],['オランダ代表'],['キューバ代表'],['韓国代表']].forEach((a,i)=>OPP[i].push(...a));
+
+/* ---------- home scene ---------- */
+const hcv=$('#hcv'),hctx=hcv.getContext('2d'); hctx.imageSmoothingEnabled=false;
+const bg=document.createElement('canvas'); bg.width=LW; bg.height=LH;
+function isField(c,r){return c>=1&&c<=9&&r>=1&&r<=8;}
+function isRoad(c,r){return r===9||(c===5&&r>=10);}
+function isLot(c,r){return c>=0&&c<11&&r>=0&&r<12&&!isField(c,r)&&!isRoad(c,r);}
+function facAt(c,r){return S.fac.find(f=>f.x===c&&f.y===r);}
+function buildBG(){
+  const g=bg.getContext('2d');
+  for(let r=0;r<12;r++) for(let c=0;c<11;c++){
+    const x=c*16,y=r*16;
+    if(isRoad(c,r)){fr(g,x,y,16,16,'#cdb88f'); fr(g,x,y,16,1,'#b39d74'); if(r===9) fr(g,x,y+15,16,1,'#b39d74'); if((c+r)%2) fr(g,x+6,y+7,2,1,'#e3d3b1');}
+    else if(!isField(c,r)){fr(g,x,y,16,16,'#7cc35f'); if((c*3+r)%4===0){fr(g,x+4,y+5,1,2,'#5ea545'); fr(g,x+6,y+4,1,3,'#5ea545');} if((c+r*5)%7===0) fr(g,x+11,y+10,2,2,'#f4e37a');}
+  }
+  drawField(g,16,16,144,128,88,136,26);
+  S.fac.forEach(f=>drawFac(g,f.t,f.x*16,f.y*16));
+}
+const HS=new Map(); let visitors=[]; let buildMode=null; let blinkT=0, tclock=0;
+function trainingNow(){return S.day%7<5;}
+function homeSpot(p){
+  const m=S.cmd.menu; const pk=pickOf(p);
+  if(!MENU[m].base||!trainingNow()||!pk) return [ri(24,64),ri(128,140)];
+  if(pk.ab==='pit') return [ri(70,106),ri(98,122)];
+  if(pk.ab==='bat') return [ri(60,116),ri(120,138)];
+  return [ri(28,148),ri(72,140)];
+}
+function hsOf(p){let h=HS.get(p.id); if(!h){const [x,y]=homeSpot(p); h={x,y,tx:x,ty:y,wait:rnd(0,2),walk:0}; HS.set(p.id,h);} return h;}
+function spawnVisitors(n){
+  for(let i=0;i<n&&visitors.length<14;i++){
+    const f=S.fac.length?pick(S.fac):null;
+    const wp=[[88,152]];
+    if(f){const tx=f.x*16+8, ty=f.y*16+12;
+      if(f.y>=10||f.x===0||f.x===10) wp.push([tx,152],[tx,ty]);
+      else {const side=f.x<5?8:168; wp.push([side,152],[side,ty],[tx,ty]);}
+    } else wp.push([ri(10,166),152]);
+    const back=wp.slice(0,-1).reverse().concat([[88,206]]);
+    visitors.push({x:88+ri(-3,3),y:204+ri(0,30),wp,back,shop:f?f.t:null,look:makeLook(),pal:{c:'#000',u:pick(SHIRT),p:pick(PANTS)},spd:rnd(14,22),stay:0,walk:0});
+  }
+}
+function moveTo(o,tx,ty,sp,dt){const dx=tx-o.x,dy=ty-o.y,d=Math.hypot(dx,dy); if(d<=sp*dt){o.x=tx;o.y=ty;return true;} o.x+=dx/d*sp*dt; o.y+=dy/d*sp*dt; return false;}
+function floatText(layer,lw,lh,x,y,text,cls){
+  const el=document.createElement('span'); el.className='fl '+(cls||''); el.textContent=text;
+  el.style.left=(x/lw*100)+'%'; el.style.top=(y/lh*100)+'%';
+  layer.appendChild(el); setTimeout(()=>el.remove(),1500);
+}
+const hfx=$('#hfx');
+function hfloat(x,y,t,c){floatText(hfx,LW,LH,x,y,t,c);}
+function drawHome(dt){
+  tclock+=dt; blinkT+=dt;
+  const g=hctx; g.drawImage(bg,0,0);
+  if(buildMode&&Math.floor(blinkT*3)%2===0){
+    for(let r=0;r<12;r++) for(let c=0;c<11;c++) if(isLot(c,r)&&!facAt(c,r)){g.strokeStyle='#ffe14a'; g.lineWidth=1; g.strokeRect(c*16+1.5,r*16+1.5,13,13);}
+  }
+  const ents=[]; const m=S.cmd.menu, practicing=trainingNow()&&!['rest','sales'].includes(m);
+  const sp=m==='camp'&&practicing?28:practicing?15:8;
+  for(const p of S.players){
+    const h=hsOf(p);
+    if(h.wait>0){h.wait-=dt; h.walk=0;}
+    else {h.walk+=dt; if(moveTo(h,h.tx,h.ty,sp,dt)){h.wait=practicing?rnd(0.6,2.6):rnd(3,8); const [x,y]=homeSpot(p); h.tx=x; h.ty=y;}}
+    const frame=h.wait>0?0:(Math.floor(h.walk*6)%2);
+    const pk=pickOf(p); let bat=null; if(practicing&&pk&&pk.ab==='bat'&&h.wait>0) bat=Math.floor(tclock*2.5+p.id)%2?'swing':'ready';
+    ents.push({y:h.y,draw:()=>drawGuy(g,p,myPal(),h.x,h.y,frame,bat,p.pos)});
+    if(!practicing&&h.wait>0&&Math.random()<dt*0.05) hfloat(h.x,h.y-16,'Zz','zz');
+  }
+  visitors=visitors.filter(v=>{
+    if(v.stay>0){v.stay-=dt; if(v.stay<=0){v.wp=v.back; v.back=null;} return true;}
+    if(!v.wp.length){ if(v.back){v.stay=rnd(0.8,1.6); if(v.shop==='stall'||v.shop==='goods') hfloat(v.x,v.y-16,'+¥','money'); return true;} return false; }
+    v.walk+=dt;
+    if(moveTo(v,v.wp[0][0],v.wp[0][1],v.spd,dt)) v.wp.shift();
+    ents.push({y:v.y,draw:()=>g.drawImage(sprite(v.look,v.pal,{civ:true,frame:Math.floor(v.walk*6)%2}),Math.round(v.x-7),Math.round(v.y-17))});
+    return true;
+  });
+  ents.sort((a,b)=>a.y-b.y).forEach(e=>e.draw());
+}
+
+/* ---------- HUD ---------- */
+function renderHUD(){
+  const d=Math.min(S.day,TOTAL_YEARS*YEAR_DAYS-1);
+  $('#tY').textContent=yearOf(d); $('#tM').textContent=monthOf(d); $('#tW').textContent=Math.floor((doyOf(d)%28)/7)+1; $('#tD').textContent=WD[d%7]+'曜';
+  $('#hYears').textContent=TOTAL_YEARS-yearOf(d)+1;
+  $('#hMoney').textContent=Math.floor(S.money).toLocaleString(); $('#hMoneyBox').classList.toggle('neg',S.money<0);
+  $('#hPop').textContent=Math.floor(S.pop).toLocaleString();
+  const L=LV[S.lvl];
+  $('#hCup').innerHTML=`<b>${L.name}</b> ${L.rounds>1?roundName(S.lvl,S.round):''} 推奨${rk(L.req)} 自${rk(teamStr(S.players))}`;
+  $('#hCmd').innerHTML=`今週 <b>${MENU[S.cmd.menu].name}</b>${MENU[S.cmd.menu].base&&S.cmd.picks?'：'+S.cmd.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return p?esc(p.name)+ABS[x.ab]:'';}).join(' '):''}`;
+  $('#ticker').textContent=S.news;
+  $('#pSpeed').textContent={1:'▶ ふつう',2:'▶▶ はやい',4:'▶▶▶ 超速',0:'‖ 停止中'}[S.speed];
+}
+function news(t){S.news=t; $('#ticker').textContent=t;}
+
+/* ---------- training & economy ---------- */
+function facBonus(k){const n=k==='bat'?cnt('cage'):k==='pit'?cnt('pen'):cnt('knock')+cnt('track'); return Math.min(n,3)*0.25;}
+function needExp(p,k){return 20+p[k]*4.6;}
+function addExp(p,k,amt,silent){
+  if(p[k]>=99) return;
+  p.exp[k]=(p.exp[k]||0)+amt; let ups=0; const r0=rank(p[k]);
+  while(p.exp[k]>=needExp(p,k)&&p[k]<99){p.exp[k]-=needExp(p,k); p[k]++; ups++;}
+  if(ups){sync(p); p.sal=salary(p); const h=HS.get(p.id); if(h&&!silent){const r1=rank(p[k]); hfloat(h.x,h.y-17,r1!==r0?`${ABIL[k]} ${r1}にUP！`:`${ABS[k]}↑`,r1!==r0?'up big':'up'); if(r1!==r0) news(`${p.name}の${ABIL[k]}が ${r1} ランクに上がった！`);}}
+}
+function pickOf(p){return (S.cmd.picks||[]).find(x=>x.id===p.id);}
+function trainDay(){
+  const M=MENU[S.cmd.menu];
+  S.players.forEach(p=>{
+    const pk=M.base?pickOf(p):null;
+    if(pk){
+      p.fat=clamp(p.fat+M.fat-cnt('dorm')*1.5,0,100);
+      const condF=[0.7,0.85,1,1.15,1.3][p.cond-1];
+      addExp(p,pk.ab,M.base*2.3*LV[S.lvl].exp*p.tal*condF*(1-p.fat/160)*(p.age>=32?0.7:1)*(1+facBonus(pk.ab))*rnd(0.8,1.2));
+    } else p.fat=clamp(p.fat-(M.base?4:-M.fat)-cnt('dorm')*2,0,100);
+  });
+}
+function economy(){
+  const inc=LV[S.lvl].inc;
+  const vis=Math.round((20+S.pop*1.2)*rnd(0.85,1.15));
+  const money=(cnt('stall')*vis*0.012+cnt('goods')*vis*0.02+cnt('board')*1)*inc;
+  S.money+=money; S.pop=S.pop+cnt('goods')*0.02+cnt('board')*0.015;
+  spawnVisitors(Math.min(8,Math.ceil(vis/14)));
+  if(money>=1) hfloat(88,150,`施設収入 +${Math.round(money)}万`,'money');
+}
+const EVENTS=[
+  ()=>{S.pop+=3; return '地元テレビで特集された！ 人気+3';},
+  ()=>{const m=Math.round((30+S.pop*0.5)*LV[S.lvl].inc); S.money+=m; return `スポンサーから応援金 ${m}万円！`;},
+  ()=>{const p=pick(S.players); const k=p.pos==='投'?pick(['pit','fld']):pick(['bat','fld']); const b=p[k]; p[k]=Math.min(99,p[k]+3); sync(p); return p[k]>b?`${p.name}が練習中にコツをつかんだ！ ${ABIL[k]}+${p[k]-b}`:null;},
+  ()=>{S.players.forEach(p=>p.fat=Math.max(0,p.fat-20)); return 'ファンから差し入れ！ みんなの疲れが少し取れた';},
+  ()=>{S.pop+=1; return '子どもたちが練習を見学に来た。人気+1';}];
+function tick(){
+  if(S.day>=TOTAL_YEARS*YEAR_DAYS){ending(); return;}
+  const wd=S.day%7;
+  if(wd===0&&S.cmdWeek!==weekIdx(S.day)){commandPrompt(); return;}
+  if(wd===5&&S.lastPlayed!==S.day){matchPrompt(); return;}
+  if(wd<5) trainDay();
+  economy();
+  S.day++;
+  S.maxMoney=Math.max(S.maxMoney,S.money);
+  if(S.day%7===0) weekly();
+  if(doyOf(S.day)%28===0) monthly();
+  if(doyOf(S.day)===0&&S.day<TOTAL_YEARS*YEAR_DAYS) newYear();
+  save(); renderHUD();
+}
+function weekly(){
+  S.players.forEach(p=>{p.cond=clamp(p.cond+ri(-1,1)+(p.cond>3&&Math.random()<0.3?-1:0)+(p.cond<3&&Math.random()<0.3?1:0),1,5);});
+  const avg=S.players.reduce((s,p)=>s+p.fat,0)/S.players.length;
+  if(avg>60) news('選手たちがかなり疲れています。今週は「休養」がおすすめ');
+  else if(Math.random()<0.4){const t=pick(EVENTS)(); if(t) news(t);}
+}
+function monthly(){
+  const tot=S.players.reduce((s,p)=>s+p.sal,0); S.money-=tot;
+  S.scouts=genScouts();
+  news(`月末です。給料 ${tot}万円を払いました。スカウトに新しい候補が来ています`);
+}
+function newYear(){
+  Object.values(S.cups||{}).forEach(ts=>ts.forEach(t=>t.roster.forEach(p=>{AKEYS.forEach(k=>p[k]=Math.min(99,p[k]+ri(0,2))); sync(p);})));
+  const yr=yearOf(S.day)-1; S.recs=S.recs||{};
+  S.players.forEach(p=>{
+    const st=p.st; p.hist.push({y:yr,...st});
+    if(st.hr>(S.recs.hr?S.recs.hr.v:0)) S.recs.hr={v:st.hr,name:p.name,y:yr};
+    if(st.ab>=60){const a=st.h/st.ab; if(a>(S.recs.avg?S.recs.avg.v:0)) S.recs.avg={v:a,name:p.name,y:yr};}
+    if(st.rbi>(S.recs.rbi?S.recs.rbi.v:0)) S.recs.rbi={v:st.rbi,name:p.name,y:yr};
+    if(st.w>(S.recs.w?S.recs.w.v:0)) S.recs.w={v:st.w,name:p.name,y:yr};
+    p.age++; p.st={ab:0,h:0,hr:0,rbi:0,w:0,l:0,g:0}; if(p.age>=33){AKEYS.forEach(k=>p[k]=Math.max(5,p[k]-ri(0,3))); sync(p);} p.sal=salary(p);});
+  news(`${yearOf(S.day)}年目が始まりました！ 残り${TOTAL_YEARS-yearOf(S.day)+1}年`);
+}
+
+/* ---------- modal ---------- */
+const ov=$('#ov');
+function modal(title,body,buttons){
+  $('#ovT').textContent=title; $('#ovB').innerHTML=body; const f=$('#ovF'); f.innerHTML='';
+  (buttons||[{label:'閉じる',sub:true}]).forEach(b=>{const el=document.createElement('button'); el.className='btn'+(b.sub?' sub':''); el.textContent=b.label; el.onclick=()=>{ if(b.fn){ if(b.fn(el)===false) return; } else closeModal(); }; f.appendChild(el);});
+  const fresh=ov.hidden; ov.hidden=false; $('#ovB').scrollTop=0;
+  if(fresh) navI=-1; applyNav();
+  return $('#ovB');
+}
+function closeModal(){ov.hidden=true; navI=$('#side').hidden?-1:0; applyNav();}
+function picsIn(root,list,pal){root.querySelectorAll('canvas[data-pid]').forEach(c=>{const p=list.find(x=>x.id==c.dataset.pid); if(p) drawPortrait(c,p,pal||myPal(),p.pos);});}
+
+/* ---------- weekly command ---------- */
+let paused=false;
+function menuCost(k){return Math.round(MENU[k].cost*LV[S.lvl].cost);}
+function commandPrompt(){
+  paused=true;
+  const sel={menu:S.cmd.menu,picks:(S.cmd.picks||[]).filter(x=>S.players.some(p=>p.id===x.id)).slice(0,3)};
+  if(menuCost(sel.menu)>S.money) sel.menu='self';
+  let msg='';
+  const draw=()=>{
+    const trains=MENU[sel.menu].base>0;
+    const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
+    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)} <span class="note">${POSN[p.pos]}</span></div><div class="sub">疲れ ${fatHTML(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}">${ABS[k]}${rank(p[k])}</button>`).join('')+`</div>`;}).join('');
+    const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今週のコマンド`,
+      `<div class="sec">練習メニュー（お金をかけるほど伸びる）</div>`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn opt ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}　${c?`${c}万円`:'無料'}<small>${lack?'お金が足りません':v.desc}${k==='sales'?`（約${salesGain()}万円）`:''}</small></button>`;}).join('<div style="height:6px"></div>')+
+      (trains?`<div class="sec">練習する3人と、鍛える能力を選ぶ（${sel.picks.length}/3人）</div><p class="note">打＝バッティング　守＝守備　投＝ピッチング。選ばれなかった選手は休んで疲れを取ります。</p>${msg?`<p class="bad">${msg}</p>`:''}${rows}`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>')+
+      `<p class="note">いまの大会「${LV[S.lvl].name}」では練習効果が×${LV[S.lvl].exp}、練習代が×${LV[S.lvl].cost}になります。施設やスカウトはメニューからいつでも使えます。</p>`,
+      [{label:trains&&sel.picks.length<3?`あと${3-sel.picks.length}人選んでください`:`これで決定${menuCost(sel.menu)?`（-${menuCost(sel.menu)}万円）`:''}`,fn:()=>{
+        const c=menuCost(sel.menu); if(c>S.money) return false;
+        if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='練習する選手を3人選んでください'; draw(); return false;}
+        S.money-=c; S.cmd={menu:sel.menu,picks:sel.picks.slice()}; S.cmdWeek=weekIdx(S.day); HS.clear();
+        if(sel.menu==='sales'){const g=salesGain(); S.money+=g; S.pop+=1; news(`営業回りでスポンサー料 ${g}万円をもらいました！`);}
+        else if(MENU[sel.menu].base>0) news(`今週は${MENU[sel.menu].name}：`+sel.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return `${p.name}（${ABS[x.ab]}）`;}).join('・'));
+        else news(`今週は「${MENU[sel.menu].name}」でいきます`);
+        closeModal(); paused=false; save(); renderHUD(); return false;}}]);
+    picsIn(b,list);
+    b.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{if(menuCost(el.dataset.m)>S.money)return; sel.menu=el.dataset.m; msg=''; draw();});
+    b.querySelectorAll('[data-ab]').forEach(el=>el.onclick=()=>{
+      const id=+el.dataset.p, ab=el.dataset.ab; const cur=sel.picks.find(x=>x.id===id);
+      if(cur&&cur.ab===ab) sel.picks=sel.picks.filter(x=>x!==cur);
+      else if(cur) cur.ab=ab;
+      else if(sel.picks.length<3) sel.picks.push({id,ab});
+      else {msg='3人まで選べます。だれかを外してから選んでください'; draw(); return;}
+      msg=''; const sc=$('#ovB').scrollTop; draw(); $('#ovB').scrollTop=sc;});
+  };
+  draw();
+}
+function salesGain(){return Math.round((20+S.pop*0.6)*LV[S.lvl].inc);}
+
+/* ---------- panels ---------- */
+function keyStats(p){return AKEYS.map(k=>`${ABS[k]}${rk(p[k])}`).join(' ')+` <span class="note">${typeOf(p)}</span>`;}
+function avgStr(o){return o.ab?(o.h/o.ab).toFixed(3).replace(/^0/,''):'---';}
+function openPlayers(){
+  const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos)||ovr(b)-ovr(a));
+  const b=modal(`選手一覧（${S.players.length}/${MAX_ROSTER}人）`,`<p class="note">チーム力 ${rk(teamStr(S.players))}（上位10人の平均）</p>`+list.map(p=>`<div class="row" data-id="${p.id}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)} <span class="note">${POSN[p.pos]} ${p.age}歳</span></div><div class="sub">${keyStats(p)}</div></div><div style="text-align:right;font-size:13px">総合${rk(ovr(p))} ${condHTML(p)}<br>疲れ ${fatHTML(p)}</div></div>`).join('')+`<p class="note">選手をタップするとくわしい能力が見られます。矢印は調子です。</p>`);
+  picsIn(b,list);
+  b.querySelectorAll('.row').forEach(r=>r.onclick=()=>openPlayer(+r.dataset.id));
+}
+function openPlayer(id){
+  const p=S.players.find(x=>x.id===id); if(!p) return;
+  const rows=AKEYS.map(k=>{const v=p[k]; const ex=Math.min(100,Math.round((p.exp[k]||0)/needExp(p,k)*100)); return `<div class="stat"><span>${ABIL[k]}</span>${rk(v)}<span>${v}</span><span class="bar" title="次の成長まで ${ex}%"><i style="width:${clamp(v,0,100)}%"></i></span></div>`;}).join('')+(p.pos==='投'?`<p class="note">球速 ${p.velo}km・${typeOf(p)}</p>`:`<p class="note">${typeOf(p)}（ミート${p.meet}・パワー${p.pow}・走力${p.spd}）</p>`);
+  const st=p.st, car=p.car||st;
+  const line=o=>p.pos==='投'?`${o.w}勝${o.l}敗`:`打率${avgStr(o)}　${o.hr}本　${o.rbi}打点`;
+  const hist=(p.hist||[]).map(h=>`<tr><td>${h.y}年目</td><td>${p.pos==='投'?`${h.w}勝${h.l}敗`:avgStr(h)}</td><td>${p.pos==='投'?'':h.hr+'本'}</td><td>${p.pos==='投'?'':h.rbi+'打点'}</td></tr>`).join('');
+  const rec=`<div class="sec">成績</div><p>今年　${line(st)}<br>通算　${line(car)}</p>${hist?`<table class="st"><tr><th>年</th><th>${p.pos==='投'?'勝敗':'打率'}</th><th>${p.pos==='投'?'':'本塁打'}</th><th>${p.pos==='投'?'':'打点'}</th></tr>${hist}</table>`:''}`;
+  const posSel=`<p>守備位置 <select id="posSel">${['投',...POS].map(x=>`<option value="${x}"${x===p.pos?' selected':''}>${POSN[x]}</option>`).join('')}</select></p>`;
+  const b=modal(p.name,`<div style="display:flex;gap:12px;align-items:center"><canvas class="portrait" data-pid="${p.id}"></canvas><div>${POSN[p.pos]}　${p.age}歳<br>総合 ${rk(ovr(p))}　調子 ${condHTML(p)} ${COND[p.cond-1][2]}<br>疲れ ${fatHTML(p)} ${Math.round(p.fat)}%<br>給料 ${p.sal}万円/月</div></div>${rows}${rec}${posSel}<p class="note">才能 ${'★'.repeat(Math.max(1,Math.round((p.tal-0.7)*5)))}（育ちやすさ）</p>`,[
+    {label:'戦力外にする',sub:true,fn:(el)=>{
+      const fn=S.players.filter(x=>x.pos!=='投').length, pn=S.players.filter(x=>x.pos==='投').length;
+      if(p.pos!=='投'&&fn<=8){el.textContent='野手は8人必要です'; return false;}
+      if(p.pos==='投'&&pn<=2){el.textContent='投手は2人必要です'; return false;}
+      if(el.dataset.c!=='1'){el.dataset.c='1'; el.textContent='本当に？もう一度タップ'; return false;}
+      S.players=S.players.filter(x=>x!==p); HS.delete(p.id); news(`${p.name}が退団しました`); save(); renderHUD(); openPlayers(); return false;}},
+    {label:'もどる',fn:()=>{openPlayers(); return false;}}]);
+  picsIn(b,[p]);
+  const sel=b.querySelector('#posSel'); if(sel) sel.onchange=()=>{p.pos=sel.value; save(); picsIn(b,[p]);};
+}
+function openFac(){
+  const inc=LV[S.lvl].inc;
+  const b=modal('施設を建てる',Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}</div></div><div style="text-align:right;white-space:nowrap;font-weight:800">${facCost(k)}万</div></div>`).join('')+`<p class="note">いまの大会では施設収入が×${inc}になります。大会レベルを上げるほどお客さんがたくさんお金を使います。</p>`);
+  b.querySelectorAll('canvas[data-fac]').forEach(c=>drawFac(c.getContext('2d'),c.dataset.fac,0,0));
+  b.querySelectorAll('.row').forEach(r=>r.onclick=()=>{const k=r.dataset.k; if(S.money<facCost(k)){r.querySelector('.sub').innerHTML='<span class="bad">お金が足りません</span>'; return;} closeModal(); buildMode=k; $('#hintTxt').textContent=`${FAC[k].name}：建てる場所をタップ`; $('#hint').hidden=false;});
+}
+function genScouts(){
+  const arr=[]; const y=yearOf(S.day); for(let i=0;i<3;i++){
+    const rare=Math.random()<0.12; const base=24+y*3+S.unlocked*2+rnd(-5,10)+(rare?12:0);
+    const p=mkPlayer(Math.random()<0.35?'投':pick(POS),base); if(rare){p.tal=+rnd(1.25,1.5).toFixed(2); p.rare=1;}
+    p.cost=Math.round(ovr(p)**2/5+(rare?150:0)); arr.push(p);} return arr;
+}
+function openScout(){
+  const b=modal('スカウト',S.scouts.length?S.scouts.map(p=>`<div class="row" data-id="${p.id}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)} <span class="note">${POSN[p.pos]} ${p.age}歳</span>${p.rare?' <span class="rk" style="background:#e0457b">期待</span>':''}</div><div class="sub">${keyStats(p)}</div></div><div style="text-align:right;white-space:nowrap">総合${rk(ovr(p))}<br><b>${p.cost}万</b></div></div>`).join(''):'<p>今月の候補はもういません。</p>',
+    [{label:'別の候補をさがす（30万）',sub:true,fn:()=>{if(S.money<30)return false; S.money-=30; S.scouts=genScouts(); save(); renderHUD(); openScout(); return false;}},{label:'閉じる',sub:true}]);
+  picsIn(b,S.scouts);
+  b.querySelectorAll('.row').forEach(r=>r.onclick=()=>{
+    const p=S.scouts.find(x=>x.id===+r.dataset.id); const sub=r.querySelector('.sub');
+    if(S.players.length>=MAX_ROSTER){sub.innerHTML='<span class="bad">チームが満員です（16人まで）</span>'; return;}
+    if(S.money<p.cost){sub.innerHTML='<span class="bad">お金が足りません</span>'; return;}
+    if(r.dataset.c!=='1'){r.dataset.c='1'; sub.innerHTML='<span class="good">もう一度タップで契約します</span>'; return;}
+    S.money-=p.cost; delete p.cost; delete p.rare; S.players.push(p); S.scouts=S.scouts.filter(x=>x!==p);
+    news(`${p.name}（${POSN[p.pos]}）と契約しました！`); save(); renderHUD(); openScout();});
+}
+function cupInfo(i){const L=LV[i]; return `推奨${rk(L.req)}以上・${L.rounds}試合・勝利賞金${L.prize}万・経験×${L.exp}・施設収入×${L.inc}`;}
+function openCup(){
+  const str=teamStr(S.players);
+  const b=modal('大会',`<p>自チーム力 ${rk(str)}　いま挑戦中：<b>${LV[S.lvl].name}</b> ${S.br?roundName(S.lvl,S.round):''}</p>${S.br?bracketHTML(S.br):`<p class="note">各大会には6チームが出場し、あなたのチームと合わせて7チームのトーナメントで戦います（1チームは1回戦がシード）。毎週土曜に1試合、3連勝で優勝です。</p>`}`+LV.map((L,i)=>{const lock=i>S.unlocked; return `<div class="row${lock?' lock':''}${i===S.lvl?' cur':''}" data-i="${i}"><div class="grow"><div class="nm">${lock?'？？？':L.name} ${S.titles[i]?'<span class="note">優勝'+S.titles[i]+'回</span>':''}</div><div class="sub">${lock?'ひとつ前の大会で優勝すると挑戦できます':cupInfo(i)}</div></div></div>`;}).join('')+`<p class="note">大会の途中では切りかえられません。負けても勝ったときと同じ経験値がもらえます。</p>`);
+  b.querySelectorAll('.row').forEach(r=>r.onclick=()=>{const i=+r.dataset.i; if(i>S.unlocked||i===S.lvl) return; if(S.br&&S.br.res[0].length){r.querySelector('.sub').innerHTML='<span class="bad">いまの大会が終わってから切りかえられます</span>'; return;} S.lvl=i; S.br=null; S.round=0; news(`挑戦する大会を「${LV[i].name}」にしました`); save(); renderHUD(); openCup();});
+}
+function recordsHTML(){
+  const R=Object.assign({},S.recs||{}); const yr=yearOf(Math.min(S.day,TOTAL_YEARS*YEAR_DAYS-1));
+  S.players.forEach(p=>{const st=p.st; if(st.hr>(R.hr?R.hr.v:0)) R.hr={v:st.hr,name:p.name,y:yr,now:1}; if(st.ab>=60&&st.h/st.ab>(R.avg?R.avg.v:0)) R.avg={v:st.h/st.ab,name:p.name,y:yr,now:1}; if(st.rbi>(R.rbi?R.rbi.v:0)) R.rbi={v:st.rbi,name:p.name,y:yr,now:1}; if(st.w>(R.w?R.w.v:0)) R.w={v:st.w,name:p.name,y:yr,now:1};});
+  const one=(lbl,r,fmt)=>`<p>${lbl}　${r?`<b>${fmt(r.v)}</b> ${esc(r.name)}（${r.y}年目${r.now?'・今年':''}）`:'<span class="note">まだなし</span>'}</p>`;
+  const bats=S.players.filter(p=>p.pos!=='投'&&p.car);
+  const topHR=bats.slice().sort((a,b)=>b.car.hr-a.car.hr).slice(0,3).filter(p=>p.car.hr>0);
+  const topAvg=bats.filter(p=>p.car.ab>=100).sort((a,b)=>b.car.h/b.car.ab-a.car.h/a.car.ab).slice(0,3);
+  return `<div class="sec">チームの歴代記録（1年間）</div>`+one('最多本塁打',R.hr,v=>v+'本')+one('最高打率',R.avg,v=>v.toFixed(3).replace(/^0/,''))+one('最多打点',R.rbi,v=>v+'打点')+one('最多勝',R.w,v=>v+'勝')+
+    `<div class="sec">通算本塁打（いまの選手）</div>`+(topHR.map((p,i)=>`<p>${i+1}位　${esc(p.name)}　<b>${p.car.hr}本</b></p>`).join('')||'<p class="note">まだなし</p>')+
+    `<div class="sec">通算打率（100打数以上）</div>`+(topAvg.map((p,i)=>`<p>${i+1}位　${esc(p.name)}　<b>${avgStr(p.car)}</b></p>`).join('')||'<p class="note">まだなし</p>');
+}
+function openRec(){
+  const best=loadBest(); const r=S.rec;
+  const b=modal('記録',`<p>${dateStr(Math.min(S.day,TOTAL_YEARS*YEAR_DAYS-1))}　<b>残り${TOTAL_YEARS-yearOf(Math.min(S.day,TOTAL_YEARS*YEAR_DAYS-1))+1}年（今年をふくむ）</b></p><p>通算 ${r.w}勝${r.l}敗${r.d}分　最高資金 ${Math.floor(S.maxMoney).toLocaleString()}万円</p><div class="sec">優勝した大会</div>${LV.map((L,i)=>S.titles[i]?`<p>${L.name}　${S.titles[i]}回</p>`:'').join('')||'<p class="note">まだありません</p>'}${recordsHTML()}<div class="sec">ハイスコア（12年後の資金）</div><p>${best?`${best.money.toLocaleString()}万円（${esc(best.name)}・最高 ${LV[best.lvl].name}）`:'まだありません'}</p><p class="note">12年目の終わりに持っている資金がスコアになります。</p>`,
+    [{label:'はじめからやり直す',sub:true,fn:(el)=>{if(el.dataset.c!=='1'){el.dataset.c='1'; el.textContent='データが消えます。もう一度タップ'; return false;} try{localStorage.removeItem(KEY);}catch(e){} location.reload(); return false;}},{label:'閉じる',sub:true}]);
+}
+
+/* ---------- match engine ---------- */
+const FP={投:[88,142],捕:[88,196],一:[121,134],二:[106,116],遊:[70,116],三:[55,134],左:[38,70],中:[88,52],右:[138,70]};
+const BASEPOS=[[122,144],[88,110],[54,144],[88,178]];
+const HIT1={左:[50,92],中:[88,82],右:[126,92]};
+const GAP2=[['左中間',[62,46]],['右中間',[114,46]],['レフト線',[22,78]],['ライト線',[154,78]]];
+const GAP3=[['レフト線',[14,64]],['ライト線',[162,64]],['センターの奥',[88,32]]];
+const HRT=[['レフトスタンド',[30,8]],['バックスクリーン',[88,3]],['ライトスタンド',[146,8]]];
+const INF=[['ファースト','一'],['セカンド','二'],['ショート','遊'],['サード','三'],['ピッチャー','投']];
+const OF=[['レフト','左'],['センター','中'],['ライト','右']];
+const jit=([x,y],j)=>[x+ri(-j,j),y+ri(-j,j)];
+function perf(p){return [0.9,0.95,1,1.05,1.1][(p.cond||3)-1]*(1-(p.fat||0)*0.0015);}
+function lineupOf(T){
+  const fielders=T.players.filter(p=>p.pos!=='投'), pitchers=T.players.filter(p=>p.pos==='投');
+  const used=new Set(), fieldOf={}; let defSum=0;
+  for(const pos of POS){const c=fielders.filter(p=>!used.has(p)&&p.pos===pos).sort((a,b)=>ovr(b)-ovr(a))[0]; if(c){fieldOf[pos]=c; used.add(c); defSum+=c.def;}}
+  for(const pos of POS) if(!fieldOf[pos]){
+    let c=fielders.filter(p=>!used.has(p)).sort((a,b)=>ovr(b)-ovr(a))[0];
+    if(!c){c={id:-ri(1,99999),name:'助っ人',pos,look:makeLook(),meet:20,pow:20,spd:20,def:20,cond:3,fat:0,st:{}};}
+    fieldOf[pos]=c; used.add(c); defSum+=c.def-15;
+  }
+  const ps=pitchers.slice().sort((a,b)=>T.mine?(a.fat-b.fat)||(ovr(b)-ovr(a)):Math.random()-0.5);
+  const starter=ps[0];
+  const a=Object.values(fieldOf).sort((x,y)=>(y.meet*0.6+y.pow*0.4)-(x.meet*0.6+x.pow*0.4));
+  const fast=a.slice(2,6).sort((x,y)=>y.spd-x.spd)[0]; const rest=a.filter(x=>x!==fast&&x!==a[0]&&x!==a[1]);
+  const order=[fast,rest[0],a[1],a[0]].concat(rest.slice(1));
+  return {team:T,mine:!!T.mine,name:T.name,pal:T.pal,order,fieldOf,def:defSum/8,pitcher:starter,pen:ps.slice(1),used:[starter],bi:0,pc:0,str:teamStr(T.players)};
+}
+function makeGame(homeT,awayT){return {home:lineupOf(homeT),away:lineupOf(awayT),inning:1,top:true,outs:0,bases:[null,null,null],pa:null,cnt:{b:0,s:0},manualDef:false,score:{home:0,away:0},line:{home:[],away:[0]},over:false,box:{}};}
+function nextBatter(L){const i=L.bi%9; return i<8?L.order[i]:L.pitcher;}
+function changePitcher(def,ev){const np=def.pen.shift(); if(!np) return null; def.pitcher=np; def.pc=0; def.used.push(np); return `${def.name}：ピッチャー交代 → ${np.name}`;}
+/* one pitch at a time: balls, strikes, fouls; a plate appearance ends on 4 balls, 3 strikes or a ball in play */
+function pLim(p){return 60+p.sta*0.7;}
+function startPA(G){
+  if(G.pa) return G.pa;
+  const off=G.top?G.away:G.home, def=G.top?G.home:G.away;
+  let pc=null; if(def.pc>pLim(def.pitcher)&&def.pen.length&&!(def.mine&&G.manualDef)) pc=changePitcher(def);
+  const b=nextBatter(off); off.bi++;
+  G.pa={b,pc}; G.cnt={b:0,s:0}; return G.pa;
+}
+function pitchCtx(G,opt){
+  const off=G.top?G.away:G.home, def=G.top?G.home:G.away; const pa=startPA(G); const b=pa.b, pit=def.pitcher; const pm=opt.pitch||'normal';
+  let pf=perf(pit)*(def.pc>pLim(pit)?0.85:1); if(pm==='full') pf*=1.12;
+  const bp=perf(b);
+  const pp=(pm==='break'?((pit.velo-120)*0.5+pit.ctl*0.2+pit.brk*0.6):((pit.velo-120)*0.9+pit.ctl*0.25+pit.brk*0.35))*pf;
+  const gap=clamp(((b.bat||b.meet)*bp-(pit.pit||pit.ctl)*pf)/10,-4,4); // batter rank vs pitcher rank, in rank steps
+  return {off,def,b,pit,pm,pf,pp,gap,meet:b.meet*bp,pow:b.pow*bp,edge:(off.str-def.str)*0.006};
+}
+function genPitch(G,opt){
+  const c=pitchCtx(G,opt||{});
+  const zone=clamp(0.58+(c.pit.ctl*c.pf-50)*0.004-Math.max(0,c.gap)*0.035+(c.pm==='break'?-0.06:0),0.3,0.8);
+  const inZ=Math.random()<zone; let x,y;
+  if(inZ){x=rnd(-0.9,0.9); y=rnd(-0.9,0.9);}
+  else if(Math.random()<0.5){x=(Math.random()<0.5?-1:1)*rnd(1.2,1.7); y=rnd(-1.1,1.1);}
+  else {x=rnd(-1,1); y=(Math.random()<0.5?-1:1)*rnd(1.2,1.6);}
+  const brk=c.pm==='break'||(c.pm==='normal'&&Math.random()<0.3);
+  return {inZ,x,y,brk,bx:brk?(Math.random()<0.5?-1:1)*rnd(0.8,1.4):0};
+}
+function pitch(G,opt){
+  opt=opt||{};
+  const c=pitchCtx(G,opt); const pa=G.pa;
+  const pl=opt.pre||genPitch(G,opt);
+  const ev={off:c.off,def:c.def,inning:G.inning,top:G.top,moves:[],runs:0,pc:pa.pc,arc:0,b:c.b,pl,pitchOnly:true,swung:false};
+  pa.pc=null;
+  c.def.pc+=c.pm==='full'?1.5:1;
+  const st=opt.strat||'normal'; const B=G.bases, b=c.b;
+  if(st==='bunt'){
+    ev.swung=true;
+    const any=B[0]||B[1]||B[2]; let res;
+    if(any) res=Math.random()<0.72+(b.meet-50)*0.004?'SAC':(Math.random()<0.5?'K':'FO');
+    else res=Math.random()<0.22+(b.spd-50)*0.006?'1B':'GO';
+    return applyRes(G,ev,res,st,false);
+  }
+  const q=opt.swing; const two=G.cnt.s===2;
+  let swing;
+  if(q===undefined){
+    let sp=pl.inZ?0.66+(b.meet-50)*0.003+(two?0.15:0):0.27-(b.meet-50)*0.003+(two?0.1:0);
+    if(st==='walk') sp=pl.inZ?(two?0.72:0.3):(two?0.12:0.04)-((b.bat||b.meet)-50)*0.001;
+    else if(st==='hr') sp=pl.inZ?0.74+(two?0.12:0):0.33+(two?0.1:0);
+    else if(st==='hit') sp=pl.inZ?0.7+(two?0.15:0):0.22-((b.bat||b.meet)-50)*0.002+(two?0.12:0);
+    if(G.cnt.b===3&&G.cnt.s<2) sp*=0.5; swing=Math.random()<clamp(sp,0.02,0.97);}
+  else swing=q!=='none';
+  ev.swung=swing;
+  if(!swing){ if(pl.inZ){G.cnt.s++; ev.res='S'; ev.text='見逃し ストライク';} else {G.cnt.b++; ev.res='B'; ev.text='ボール';} }
+  else {
+    const sAdj=st==='power'||st==='hr'?-0.12:st==='contact'||st==='hit'?0.08:0;
+    const con=q===undefined?clamp((pl.inZ?0.82:0.5)+(c.meet-c.pp)*0.005+c.edge*0.5+sAdj,0.25,0.97):(q==='miss'?0:({ok:0.75,good:0.9,perfect:0.98}[q]+sAdj)*(pl.inZ?1:0.55));
+    if(Math.random()>=con){G.cnt.s++; ev.res='S'; ev.text='空振り';}
+    else if(Math.random()<(pl.inZ?(q==='perfect'?0.12:0.36):0.55)){ev.res='F'; ev.text='ファウル'; if(G.cnt.s<2) G.cnt.s++; ev.tgt=[pick([24,152]),ri(118,160)]; ev.arc=12;}
+    else {
+      const hM=st==='power'?0.9:st==='hr'?0.85:st==='contact'||st==='hit'?1.12:1; let hrB=st==='power'?1.7:st==='hr'?2.3:st==='contact'||st==='hit'?0.5:1;
+      let mul=q?{ok:0.85,good:1.2,perfect:1.6}[q]:1; if(q==='perfect')hrB*=2.2; else if(q==='good')hrB*=1.3; if(!pl.inZ){mul*=0.6; hrB*=0.5;}
+      const pH=clamp((0.30+(c.meet-c.pp)*0.0025+c.gap*0.03-(c.def.def-50)*0.0012+c.edge)*hM*mul,0.08,0.85);
+      let res;
+      if(Math.random()<pH){const hr=clamp((0.025+(c.pow-40)*0.003+Math.max(0,c.gap)*0.012)*hrB,0.01,0.6),tr=clamp(0.02+(b.spd-50)*0.0006,0.005,0.06),db=clamp(0.17+(c.pow-50)*0.002,0.08,0.32),r=Math.random(); res=r<hr?'HR':r<hr+tr?'3B':r<hr+tr+db?'2B':'1B';}
+      else res=Math.random()<0.52?'GO':'FO';
+      return applyRes(G,ev,res,st,false);
+    }
+  }
+  if(G.cnt.b>=4) return applyRes(G,ev,'BB',st,false);
+  if(G.cnt.s>=3) return applyRes(G,ev,'K',st,!swing);
+  return ev;
+}
+function applyRes(G,ev,res,st,looking){
+  const side=G.top?'away':'home', B=G.bases, b=ev.b;
+  ev.ptext=ev.text; ev.pitchOnly=false; ev.final=true; ev.tgt=null; ev.arc=0; G.pa=null; G.cnt={b:0,s:0};
+  const mv=(from,to)=>{const p=from<0?b:B[from]; if(from>=0)B[from]=null; if(to>=3){ev.runs++; ev.moves.push({p,from,to:3});} else if(to===-2){ev.moves.push({p,from,to:-2});} else {B[to]=p; ev.moves.push({p,from,to});}};
+  let d;
+  switch(res){
+    case 'K': G.outs++; ev.text=st==='bunt'?'バント失敗で三振':looking?'見逃し三振':'空振り三振'; break;
+    case 'BB': if(B[0]){if(B[1]){if(B[2])mv(2,3); mv(1,2);} mv(0,1);} mv(-1,0); ev.text='フォアボール'; break;
+    case 'SAC': G.outs++; ev.tgt=jit([88,160],5); ev.fielder='投'; ev.text='送りバント成功'; if(G.outs<3){if(B[2])mv(2,3); if(B[1])mv(1,2); if(B[0])mv(0,1);} break;
+    case '1B': d=pick(OF); ev.text=st==='bunt'?'セーフティバント成功！':`${d[0]}前ヒット`; ev.tgt=st==='bunt'?jit([96,158],4):jit(HIT1[d[1]],8); ev.arc=st==='bunt'?0:6;
+      if(B[2])mv(2,3); if(B[1])mv(1,Math.random()<0.55+(B[1].spd-50)*0.006?3:2); if(B[0])mv(0,(!B[2]&&Math.random()<0.25)?2:1); mv(-1,0); break;
+    case '2B': d=pick(GAP2); ev.text=`${d[0]}へツーベース！`; ev.tgt=jit(d[1],5); ev.arc=14;
+      if(B[2])mv(2,3); if(B[1])mv(1,3); if(B[0])mv(0,Math.random()<0.4+(B[0].spd-50)*0.008?3:2); mv(-1,1); break;
+    case '3B': d=pick(GAP3); ev.text=`${d[0]}へスリーベース！`; ev.tgt=jit(d[1],4); ev.arc=14;
+      for(let i=2;i>=0;i--) if(B[i])mv(i,3); mv(-1,2); break;
+    case 'HR': d=pick(HRT); ev.text=`${d[0]}へホームラン！！`; ev.tgt=jit(d[1],4); ev.arc=34;
+      for(let i=2;i>=0;i--) if(B[i])mv(i,3); mv(-1,3); break;
+    case 'GO': d=pick(INF); ev.tgt=st==='bunt'?jit([88,158],4):jit(FP[d[1]],5); ev.arc=0; ev.fielder=st==='bunt'?'投':d[1];
+      if(B[0]&&G.outs<2&&Math.random()<0.16){mv(0,-2); G.outs+=2; ev.text=`${d[0]}ゴロ ゲッツー`; if(G.outs<3&&B[2]&&Math.random()<0.5)mv(2,3);}
+      else {G.outs++; ev.text=st==='bunt'?'バント失敗':`${d[0]}ゴロ`; if(G.outs<3){if(B[2]&&Math.random()<0.45)mv(2,3); if(B[1]&&!B[2]&&Math.random()<0.6)mv(1,2); if(B[0]&&!B[1])mv(0,1);}}
+      break;
+    case 'FO': d=pick(OF); ev.tgt=jit(FP[d[1]],8); ev.arc=24; ev.fielder=d[1]; G.outs++; ev.text=st==='bunt'?'バントがフライに…':`${d[0]}フライ`;
+      if(st==='bunt'){ev.tgt=jit([88,150],4); ev.fielder='投'; ev.arc=10;}
+      if(G.outs<3&&B[2]&&st!=='bunt'&&Math.random()<0.45){mv(2,3); ev.text=`${d[0]}への犠牲フライ`;} break;
+  }
+  if(ev.tgt&&!ev.fielder&&res!=='HR'){let best=null,bd=1e9; for(const k of ['一','二','遊','三','左','中','右']){const dd=Math.hypot(FP[k][0]-ev.tgt[0],FP[k][1]-ev.tgt[1]); if(dd<bd){bd=dd; best=k;}} ev.fielder=best;}
+  ev.res=res;
+  const bx=G.box[b.id]||(G.box[b.id]={ab:0,h:0,hr:0,rbi:0});
+  if(res!=='BB'&&res!=='SAC') bx.ab++; if(['1B','2B','3B','HR'].includes(res)) bx.h++; if(res==='HR') bx.hr++; bx.rbi+=ev.runs;
+  scoreRuns(G,ev,side);
+  return ev;
+}
+function scoreRuns(G,ev,side){
+  if(ev.runs){G.score[side]+=ev.runs; G.line[side][G.inning-1]=(G.line[side][G.inning-1]||0)+ev.runs; ev.text+=`　${ev.runs}点！`;}
+  ev.outs=G.outs;
+  if(!G.top&&G.inning>=9&&G.score.home>G.score.away){G.over=true; ev.text+='　サヨナラ！'; ev.walkoff=true; return;}
+  if(G.outs>=3){ev.change=true; endHalf(G);}
+}
+function stealEv(G){
+  const off=G.top?G.away:G.home, def=G.top?G.home:G.away; const r=G.bases[0]; const c=def.fieldOf['捕'];
+  const p=clamp(0.45+(r.spd-50)*0.012-(c.def-50)*0.006,0.15,0.9);
+  const ev={off,def,inning:G.inning,top:G.top,moves:[],runs:0,b:r,steal:true,arc:0};
+  if(Math.random()<p){G.bases[0]=null; G.bases[1]=r; ev.moves.push({p:r,from:0,to:1}); ev.res='SB'; ev.text='盗塁成功！';}
+  else {G.bases[0]=null; ev.moves.push({p:r,from:0,to:-2}); G.outs++; ev.res='CS'; ev.text='盗塁失敗…';}
+  ev.outs=G.outs; if(G.outs>=3){ev.change=true; if(G.pa){off.bi--;} endHalf(G);}
+  return ev;
+}
+function endHalf(G){
+  G.outs=0; G.bases=[null,null,null]; G.pa=null; G.cnt={b:0,s:0};
+  if(G.top){ if(G.inning>=9&&G.score.home>G.score.away){G.over=true; G.line.home[G.inning-1]='X'; return;} G.top=false; G.line.home[G.inning-1]=G.line.home[G.inning-1]||0; }
+  else { if(G.inning>=9&&G.score.home!==G.score.away){G.over=true; return;} if(G.inning>=12){G.over=true; return;} G.inning++; G.top=true; G.line.away[G.inning-1]=0; }
+}
+
+/* ---------- match flow ---------- */
+/* every tournament: our team plus the six teams of that level, single elimination (one team gets a bye in round 1) */
+const SPREAD=[-6,-3,0,2,4,7];
+function cupTeams(l){
+  S.cups=S.cups||{};
+  if(!S.cups[l]){
+    const names=OPP[l].slice().sort(()=>Math.random()-0.5).slice(0,6);
+    const pals=OPP_PALS.slice().sort(()=>Math.random()-0.5);
+    const sp=SPREAD.slice().sort(()=>Math.random()-0.5);
+    S.cups[l]=names.map((n,i)=>({name:n,pal:pals[i],roster:mkRoster(LV[l].opp+sp[i])}));
+  }
+  return S.cups[l];
+}
+function teamKey(id){return id===-1?{name:S.name,pal:myPal(),str:teamStr(S.players)}:(()=>{const t=cupTeams(S.br?S.br.lvl:S.lvl)[id]; return {name:t.name,pal:t.pal,str:teamStr(t.roster)};})();}
+function newBracket(){
+  cupTeams(S.lvl);
+  const ids=[-1,0,1,2,3,4,5].sort(()=>Math.random()-0.5);
+  if(ids[6]===-1){ids[6]=ids[0]; ids[0]=-1;}
+  S.br={lvl:S.lvl,rounds:[[[ids[0],ids[1]],[ids[2],ids[3]],[ids[4],ids[5]],[ids[6],null]]],res:[[]],out:false,champ:null};
+  S.round=0;
+}
+function ensureBracket(){if(!S.br||S.br.lvl!==S.lvl) newBracket(); return S.br;}
+function simPair(a,b){if(b===null) return {w:a}; const sa=teamKey(a).str, sb=teamKey(b).str; const w=Math.random()<1/(1+Math.exp(-(sa-sb)/6))?a:b; const hi=ri(2,8), lo=ri(0,hi-1); return {w,sc:w===a?`${hi}-${lo}`:`${lo}-${hi}`};}
+function advanceRound(br){
+  const r=br.rounds.length-1; const ws=br.res[r].map(x=>x.w);
+  if(ws.length===1){br.champ=ws[0]; return false;}
+  const next=[]; for(let i=0;i<ws.length;i+=2) next.push([ws[i],ws[i+1]===undefined?null:ws[i+1]]);
+  br.rounds.push(next); br.res.push([]); return true;
+}
+function myMatchIdx(br){const r=br.rounds.length-1; return br.rounds[r].findIndex(m=>m[0]===-1||m[1]===-1);}
+function oppId(br){const m=br.rounds[br.rounds.length-1][myMatchIdx(br)]; return m[0]===-1?m[1]:m[0];}
+function bracketHTML(br){
+  if(!br) return '';
+  const RN=['1回戦','準決勝','決勝'];
+  const nm=id=>{if(id===null) return '<span class="note">（不戦勝）</span>'; if(id===undefined) return '<span class="note">―</span>'; const k=teamKey(id); return `<span style="display:inline-block;width:8px;height:8px;background:${k.pal.c};border:1px solid #000;margin-right:3px"></span>${id===-1?'<b>'+esc(S.name.slice(0,6))+'</b>':esc(k.name.slice(0,6))}`;};
+  let h='<div class="brk">';
+  for(let r=0;r<3;r++){
+    h+=`<div class="brc"><div class="brh">${RN[r]}</div>`;
+    const ms=br.rounds[r]||[]; const n=[4,2,1][r];
+    for(let i=0;i<n;i++){const m=ms[i]; const rs=br.res[r]&&br.res[r][i];
+      if(!m){h+=`<div class="brm"><div>―</div><div>―</div></div>`; continue;}
+      h+=`<div class="brm${(m[0]===-1||m[1]===-1)?' me':''}">`+[0,1].map(j=>{const id=m[j]; const win=rs&&rs.w===id&&id!==null; return `<div class="${rs?(win?'w':'l'):''}">${nm(id)}</div>`;}).join('')+(rs&&rs.sc?`<div class="sc">${rs.sc}</div>`:'')+`</div>`;}
+    h+='</div>';
+  }
+  if(br.champ!==null&&br.champ!==undefined) h+=`<div class="brc"><div class="brh">優勝</div><div class="brm me">${nm(br.champ)}</div></div>`;
+  return h+'</div>';
+}
+function myTeam(){return {mine:true,name:S.name,pal:myPal(),players:S.players};}
+function matchPrompt(){
+  paused=true; const br=ensureBracket(); const L=LV[S.lvl]; const oid=oppId(br); const ot=cupTeams(S.lvl)[oid];
+  const ms=teamStr(S.players), os=teamStr(ot.roster);
+  const warn=ms<L.req?`<p class="bad">チーム力が推奨に届いていません。かなり手ごわい相手です。</p>`:'';
+  const myP=lineupOf(myTeam()).pitcher;
+  modal(`${L.name}　${roundName(S.lvl,S.round)}`,`<div style="text-align:center;font-size:17px;line-height:1.7;font-weight:800"><span style="color:${S.color}">■</span> ${esc(S.name)}　<span class="note">vs</span>　<span style="color:${ot.pal.c}">■</span> ${esc(ot.name)}</div><p style="text-align:center">チーム力 ${rk(ms)} 対 ${rk(os)}　（推奨${rk(L.req)}以上）</p>${warn}${bracketHTML(br)}<p class="note">先発予定：${esc(myP.name)}　勝てば賞金${L.prize}万円。負けても経験値は同じだけもらえます。</p>`,
+    [{label:'結果だけ見る',sub:true,fn:()=>{closeModal(); playGame(false); return false;}},{label:'試合をする',fn:()=>{closeModal(); playGame(true); return false;}}]);
+}
+function playGame(watch){
+  const br=ensureBracket(); const ot=cupTeams(S.lvl)[oppId(br)]; const opp={mine:false,name:ot.name,pal:ot.pal,players:ot.roster};
+  const meHome=Math.random()<0.5;
+  const G=makeGame(meHome?myTeam():opp,meHome?opp:myTeam());
+  if(!watch){while(!G.over) pitch(G); finishGame(G); return;}
+  openMatch(G);
+}
+function finishGame(G){
+  const L=LV[S.lvl];
+  const meHome=G.home.mine, my=meHome?G.home:G.away, op=meHome?G.away:G.home;
+  const ms=meHome?G.score.home:G.score.away, os=meHome?G.score.away:G.score.home;
+  let res=ms>os?'W':ms<os?'L':'D'; let lottery=false;
+  if(res==='D'){lottery=true; res=Math.random()<0.5?'W':'L';}
+  S.rec[res==='W'?'w':res==='L'?'l':'d']++;
+  // experience: same for win or loss
+  const expAmt=Math.round(10*L.exp);
+  const played=new Set([...my.order,...my.used]);
+  S.players.forEach(p=>{const amt=played.has(p)?expAmt:expAmt/2; const ks=p.pos==='投'?['pit','fld']:['bat','fld']; ks.forEach(k=>addExp(p,k,amt/ks.length*rnd(0.7,1.3),true));});
+  // money
+  const cap=600+cnt('stand')*800; const att=Math.round(Math.min(cap,(100+S.pop*15)*rnd(0.85,1.1)));
+  const ticket=Math.round(att*0.04*L.inc); const prize=res==='W'?L.prize:0;
+  S.money+=ticket+prize;
+  let hrs=0; for(const p of my.order){const bx=G.box[p.id]; if(bx&&p.car){hrs+=bx.hr; for(const o of [p.st,p.car]){o.ab+=bx.ab; o.h+=bx.h; o.hr+=bx.hr; o.rbi+=bx.rbi; o.g=(o.g||0)+1;}}}
+  const starter=my.used[0]; if(starter.car){const k=res==='W'?'w':'l'; starter.st[k]++; starter.car[k]++;}
+  my.used.forEach((p,i)=>{p.fat=clamp((p.fat||0)+(i===0?30:14),0,100);});
+  S.players.forEach(p=>{if(my.used.includes(p))return; if(my.order.includes(p)) p.fat=clamp(p.fat+3,0,100); else p.fat=clamp(p.fat-6,0,100);});
+  let dp=(res==='W'?0.5+S.lvl*0.2:0.2)+hrs*0.1;
+  let hero=null,hs=-1; for(const p of my.order){const bx=G.box[p.id]; if(!bx)continue; const sc=bx.rbi*2+bx.h+bx.hr*2; if(sc>hs){hs=sc; hero={p,bx};}}
+  // tournament progress
+  let cupMsg='', ask=false, titleBonus=0;
+  const br=ensureBracket(); const r=br.rounds.length-1; const mi=myMatchIdx(br); const oid=oppId(br);
+  br.rounds[r].forEach((m,i)=>{ if(i===mi) br.res[r][i]={w:res==='W'?-1:oid,sc:m[0]===-1?`${ms}-${os}`:`${os}-${ms}`}; else br.res[r][i]=simPair(m[0],m[1]); });
+  const shown=br;
+  if(res==='W'){
+    if(!advanceRound(br)){
+      titleBonus=L.prize*3; S.money+=titleBonus; dp+=3+S.lvl*1.5; S.titles[S.lvl]++;
+      cupMsg=`<p style="text-align:center;font-size:20px;font-weight:800;color:var(--bad)">${L.name} 優勝！！</p><p>優勝賞金 <span class="good">+${titleBonus}万円</span></p>`;
+      if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; ask=true;}
+      news(`${L.name}で優勝しました！`); S.br=null; S.round=0;
+    } else { S.round=br.rounds.length-1; cupMsg=`<p>次は <b>${roundName(S.lvl,S.round)}</b>（来週の土曜）です。</p>`; news(`${L.name}、${roundName(S.lvl,S.round-1)}を突破！`); }
+  } else {
+    br.out=true;
+    while(advanceRound(br)){const rr=br.rounds.length-1; br.rounds[rr].forEach((m,i)=>br.res[rr][i]=simPair(m[0],m[1]));}
+    cupMsg=`<p>${lottery?'延長でも決着がつかず、抽選で敗退…':'敗退…'} 優勝は <b>${esc(teamKey(br.champ).name)}</b>。来週から新しい大会に挑戦しよう。経験はしっかり積めました。</p>`;
+    news(`${L.name}は${roundName(S.lvl,r)}で敗退。経験値はしっかりもらえた`); S.br=null; S.round=0;
+  }
+  if(lottery&&res==='W') cupMsg='<p>延長でも決着がつかず、抽選で勝ち上がり！</p>'+cupMsg;
+  cupMsg+=bracketHTML(shown);
+  S.pop+=dp;
+  S.lastPlayed=S.day; S.maxMoney=Math.max(S.maxMoney,S.money);
+  const title=lottery?(res==='W'?'抽選勝ち':'抽選負け'):res==='W'?'勝利！':'敗北…';
+  const col=res==='W'?'var(--bad)':res==='L'?'#3d85c6':'var(--muted)';
+  modal('試合結果',`<div style="text-align:center"><div style="font-size:32px;font-weight:800;color:${col}">${title}</div><div style="font-size:19px;font-weight:800">${esc(my.name)} ${ms} - ${os} ${esc(op.name)}</div></div>${lineTable(G)}${cupMsg}${hero&&hs>0?`<p>ヒーロー：<b>${esc(hero.p.name)}</b>（${hero.bx.ab}打数${hero.bx.h}安打${hero.bx.hr?` ${hero.bx.hr}本塁打`:''}${hero.bx.rbi?` ${hero.bx.rbi}打点`:''}）</p>`:''}<p>経験値 <b>+${expAmt}</b>（出場した選手）<br>観客 ${att.toLocaleString()}人　入場料 <span class="good">+${ticket}万円</span>${prize?`<br>勝利賞金 <span class="good">+${prize}万円</span>`:''}<br>人気 +${dp.toFixed(1)}</p>`,
+    [{label:'OK',fn:()=>{ if(ask) levelUpPrompt(); else {closeModal(); paused=false;} save(); renderHUD(); return false;}}]);
+  save(); renderHUD();
+}
+function levelUpPrompt(){
+  const n=S.unlocked, L=LV[n], str=teamStr(S.players);
+  modal('挑戦する大会を上げますか？',`<p style="font-size:17px;font-weight:800;text-align:center">次の大会：${L.name}</p><p>推奨チーム力 ${rk(L.req)}以上　／　いまのチーム力 ${rk(str)}</p><p>勝利賞金 ${L.prize}万円・経験値×${L.exp}・練習効果×${L.exp}・施設収入×${L.inc}<br>そのかわり練習代は×${L.cost}になります。</p>${str<L.req?'<p class="bad">いまのチーム力だと歯が立たないかもしれません。</p>':''}<p class="note">あとで「大会」メニューからいつでも切りかえられます。</p>`,
+    [{label:'今のまま',sub:true,fn:()=>{closeModal(); paused=false; news(`${LV[S.lvl].name}にもう少し挑戦します`); save(); renderHUD(); return false;}},
+     {label:'上げる！',fn:()=>{S.lvl=n; closeModal(); paused=false; news(`次は「${L.name}」に挑戦だ！`); save(); renderHUD(); return false;}}]);
+}
+function lineTable(G){
+  const n=Math.max(9,G.line.away.length,G.line.home.length);
+  let h='<div style="overflow-x:auto"><table class="st" style="font-size:12px;margin:8px 0"><tr><th></th>'; for(let i=1;i<=n;i++)h+=`<th>${i}</th>`; h+='<th>計</th></tr>';
+  for(const s of ['away','home']){h+=`<tr><td style="text-align:left;white-space:nowrap">${esc(G[s].name.slice(0,5))}</td>`; for(let i=0;i<n;i++){const v=G.line[s][i]; h+=`<td>${v===undefined?'':v}</td>`;} h+=`<td><b>${G.score[s]}</b></td></tr>`;}
+  return h+'</table></div>';
+}
+function ending(){
+  paused=true; const score=Math.floor(S.money); const best=loadBest(); const isBest=!best||score>best.money;
+  if(isBest){try{localStorage.setItem(BEST_KEY,JSON.stringify({money:score,name:S.name,lvl:S.unlocked}));}catch(e){}}
+  const tt=S.titles.reduce((a,b)=>a+b,0);
+  modal('12年間おつかれさまでした！',`<div style="text-align:center"><div class="note">最終資金（スコア）</div><div style="font-size:30px;font-weight:800;color:var(--money)">${score.toLocaleString()}万円</div>${isBest?'<p class="bad"><b>ハイスコア更新！</b></p>':`<p class="note">ハイスコア ${best.money.toLocaleString()}万円</p>`}</div><p>到達した大会：<b>${LV[S.unlocked].name}</b><br>優勝 ${tt}回　通算 ${S.rec.w}勝${S.rec.l}敗${S.rec.d}分<br>最高資金 ${Math.floor(S.maxMoney).toLocaleString()}万円</p>`,
+    [{label:'もう一度はじめる',fn:()=>{try{localStorage.removeItem(KEY);}catch(e){} location.reload(); return false;}}]);
+}
+
+/* ---------- match screen ---------- */
+const mcv=$('#mcv'),mctx=mcv.getContext('2d'); mctx.imageSmoothingEnabled=false;
+const mbg=document.createElement('canvas'); mbg.width=MW; mbg.height=MH;
+drawField(mbg.getContext('2d'),0,0,MW,MH,88,178,34);
+let M=null;
+const mfx=$('#mfx');
+function openMatch(G){
+  M={G,phase:'idle',ev:null,t:0,dur:0,RD:[],pauseT:600,done:false,shown:false,assigned:false,logs:[],strat:'normal',pitch:'normal',pt:0,T:600,wind:450,tap:null,q:null,hint:true};
+  $('#match').hidden=false; renderSB(); $('#mlog').innerHTML=''; mfx.innerHTML='';
+  addLog(`プレイボール！ ${G.away.name} 対 ${G.home.name}`);
+  setMS(S.mspeed); updAuto(); updCtl(); fitAll();
+}
+function closeMatch(){$('#match').hidden=true; M=null; mfx.innerHTML=''; setOK();}
+function setMS(v){S.mspeed=v; document.querySelectorAll('[data-ms]').forEach(b=>b.classList.toggle('on',+b.dataset.ms===v));}
+function updAuto(){const b=$('#mAuto'); b.textContent=S.auto?'オート':'手動'; b.classList.toggle('on',!S.auto);}
+function offL(){return M.G.top?M.G.away:M.G.home;}
+function defL(){return M.G.top?M.G.home:M.G.away;}
+function updCtl(){
+  if(!M) return; const man=!S.auto&&!M.G.over;
+  const mineOff=offL().mine;
+  $('#mOff').hidden=!(man&&mineOff); $('#mDef').hidden=!(man&&!mineOff);
+  document.querySelectorAll('[data-bt]').forEach(b=>{b.classList.toggle('on',b.dataset.bt===M.sel); b.classList.toggle('off',M.phase!=='choose');});
+  const c=M.G.cnt||{b:0,s:0};
+  const pb=M.G.pa&&M.G.pa.b; const bi=pb&&pb.bat!==undefined?`（打${rank(pb.bat)}）`:'';
+  $('#offLbl').textContent=M.phase==='choose'?`${pb?pb.name:''}${bi}の打席。狙いは？`:(M.paFor&&M.paFor===M.G.pa?`${BTN[M.paStrat]}で打席中（${c.b}ボール${c.s}ストライク）`:'');
+  document.querySelectorAll('[data-pt]').forEach(b=>b.classList.toggle('on',b.dataset.pt===M.pitch));
+  $('#relief').classList.toggle('off',!defL().pen.length);
+  setOK();
+}
+function setOK(){
+  const b=$('#pOK'); let ready=false, label='決定';
+  if(M){ ready=M.phase==='choose'; label=ready?'決定':'―'; }
+  b.classList.toggle('ready',ready); b.textContent=label;
+}
+function addLog(t){if(!M)return; M.logs.unshift(t); M.logs=M.logs.slice(0,3); $('#mlog').innerHTML=M.logs.map(x=>`<div>${esc(x)}</div>`).join('');}
+function banner(t,big){mfx.querySelectorAll('.banner').forEach(e=>e.remove()); const el=document.createElement('div'); el.className='banner'+(big?' big':''); el.textContent=t; mfx.appendChild(el); setTimeout(()=>{if(el.parentNode)el.remove();},Math.max(600,1200/(S.mspeed||1)));}
+function renderSB(){
+  const G=M.G; const n=Math.max(9,G.inning);
+  let h='<table class="sb"><tr><th></th>'; for(let i=1;i<=n;i++)h+=`<th>${i}</th>`; h+='<th>計</th></tr>';
+  for(const s of ['away','home']){const L=G[s]; h+=`<tr><td class="tn"><i style="background:${L.pal.c}"></i>${esc(L.name.slice(0,6))}</td>`; for(let i=0;i<n;i++){const v=G.line[s][i]; h+=`<td>${v===undefined?'':v}</td>`;} h+=`<td class="tot">${G.score[s]}</td></tr>`;}
+  h+='</table>';
+  const bs=G.bases.map((b,i)=>b?['一','二','三'][i]:'').filter(Boolean).join('');
+  const lamp=(n,max)=>Array.from({length:max},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('');
+  const c=G.cnt||{b:0,s:0};
+  h+=`<div class="sbst"><span>${G.over?'試合終了':`${G.inning}回${G.top?'表':'裏'}`}</span>${G.over?'':`<span class="bso"><span class="bb">B${lamp(c.b,3)}</span><span class="ss">S${lamp(c.s,2)}</span><span class="oo">O${lamp(G.outs,2)}</span></span>`}<span>${G.over?'':(bs?`${bs}塁`:'走者なし')}</span></div>`;
+  $('#sb').innerHTML=h;
+}
+const SHORT={K:'三振！',BB:'フォアボール',['1B']:'ヒット！',['2B']:'ツーベース！',['3B']:'スリーベース！',HR:'ホームラン！！',GO:'アウト',FO:'アウト',SAC:'送りバント',SB:'盗塁成功！',CS:'盗塁失敗'};
+const isInplay=r=>!['K','BB','SB','CS','B','S','F'].includes(r);
+function startEv(ev,skipPitch){
+  M.ev=ev; M.t=skipPitch?300:0; M.shown=false; M.assigned=false; M.phase='ev';
+  M.dur=ev.steal?1000:ev.pitchOnly?(ev.tgt?900:650):isInplay(ev.res)?(ev.res==='HR'?2200:1500):950;
+  if(ev.pc) addLog(ev.pc);
+}
+function endEvent(ev){
+  if(!ev.pitchOnly) addLog(`${ev.inning}回${ev.top?'表':'裏'} ${ev.b.name}：${ev.text}`);
+  renderSB();
+  if(ev.change&&!M.G.over){banner('チェンジ'); M.RD=[]; M.pauseT=800;}
+  M.phase='idle'; updCtl();
+}
+function assignRunners(ev){
+  for(const m of ev.moves){
+    let r=M.RD.find(x=>x.p.id===m.p.id);
+    if(!r){r={p:m.p,pal:ev.off.pal,x:BASEPOS[3][0]-4,y:BASEPOS[3][1],wp:[],walk:0}; M.RD.push(r);}
+    if(m.to===-2){r.out=true; continue;}
+    for(let i=m.from+1;i<=m.to;i++) r.wp.push(BASEPOS[i]);
+    r.home=m.to===3;
+  }
+  M.RD=M.RD.filter(r=>!r.out);
+}
+/* batting is a command chosen once per plate appearance: aim for a hit, a home run, or a walk. The at-bat then plays out pitch by pitch */
+const BTN={hit:'ヒット狙い',hr:'ホームラン狙い',walk:'フォアボール狙い'};
+function chooseBt(bt){
+  if(!M||M.phase!=='choose') return;
+  M.sel=bt; M.paFor=M.G.pa; M.paStrat=bt; M.phase='idle'; M.pauseT=150; updCtl();
+}
+function swingTap(){if(M&&M.phase==='choose') chooseBt(M.sel);}
+function resolveManual(){
+  const G=M.G; const pl=M.pl;
+  const ev=pitch(G,{swing:M.q,pre:pl});
+  floatText(mfx,MW,MH,27,76,`${pl.brk?'変化球':'ストレート'}${pl.inZ?'':'・ボール球'}`,'big');
+  startEv(ev,true); updCtl();
+}
+function matchUpdate(dt){
+  if(!M) return;
+  const sp=S.mspeed, ms=dt*1000*sp;
+  if(M.phase==='ev'){
+    M.t+=ms; const ev=M.ev; const ip=isInplay(ev.res);
+    const at=ev.steal?320:ip?800:320;
+    if(!M.shown&&M.t>=(ev.pitchOnly?320:at)){M.shown=true;
+      if(ev.pitchOnly) floatText(mfx,MW,MH,104,168,ev.text,ev.res==='B'?'zz big':'up big');
+      else { if(ev.ptext&&['K','BB'].includes(ev.res)) floatText(mfx,MW,MH,104,168,ev.ptext,'big'); banner(ev.runs&&ev.res!=='HR'?`${SHORT[ev.res]} ${ev.runs}点`:SHORT[ev.res],['HR','3B'].includes(ev.res)||ev.walkoff); }
+      renderSB();}
+    if(!M.assigned&&M.t>=at){M.assigned=true; assignRunners(ev);}
+    if(M.t>=M.dur){M.ev=null; endEvent(ev);}
+  } else if(M.phase==='pitch'){
+    M.pt+=dt*1000*Math.max(1,sp*0.6); if(M.pt>=M.wind+M.T) resolveManual();
+  } else if(M.phase==='choose'){
+  } else if(M.pauseT>0){M.pauseT-=ms;}
+  else if(!M.done){
+    const G=M.G;
+    if(G.over){M.done=true; renderSB(); updCtl(); banner('試合終了',true); setTimeout(()=>{if(!M)return; const g=M.G; closeMatch(); finishGame(g);},1500);}
+    else {
+      const man=!S.auto, mineOff=offL().mine;
+      if(man&&mineOff){
+        G.manualDef=false; startPA(G);
+        if(M.paFor!==G.pa){
+          if(G.pa.pc){addLog(G.pa.pc); G.pa.pc=null;}
+          M.phase='choose'; M.sel=M.sel&&BTN[M.sel]?M.sel:'hit';
+          if(M.hint){M.hint=false; banner('打席の作戦を選ぼう！');}
+          updCtl(); renderSB();
+        } else { const ev=pitch(G,{strat:M.paStrat}); startEv(ev,false); updCtl(); }
+      } else {
+        G.manualDef=man&&!mineOff;
+        const ev=pitch(G,G.manualDef?{pitch:M.pitch}:{});
+        startEv(ev,false); updCtl();
+      }
+    }
+  }
+  for(const r of M.RD){ if(r.wp.length){r.walk+=dt*sp; if(moveTo(r,r.wp[0][0],r.wp[0][1],60*(0.7+(r.p.spd||40)/100)*sp,dt)) r.wp.shift();} else r.walk=0; }
+  M.RD=M.RD.filter(r=>!(r.home&&!r.wp.length));
+  if(M) drawMatch();
+}
+function drawMatch(){
+  const g=mctx; g.drawImage(mbg,0,0);
+  const G=M.G, ev=M.phase==='ev'?M.ev:null;
+  const def=ev?ev.def:defL(), off=ev?ev.off:offL();
+  const ents=[]; const t=M.t;
+  for(const [pos,pl] of Object.entries(def.fieldOf)){
+    let [x,y]=FP[pos];
+    if(ev&&ev.tgt&&ev.fielder===pos&&t>300){
+      const reach=['GO','FO','SAC'].includes(ev.res)?1:0.55;
+      const k=t<800?(t-300)/500*reach:Math.max(0,reach*(1-(t-800)/600));
+      x+=(ev.tgt[0]-x)*k; y+=(ev.tgt[1]-y)*k;
+    }
+    ents.push({y,f:()=>drawGuy(g,pl,def.pal,x,y,(ev&&ev.fielder===pos&&t>300&&t<1400)?Math.floor(t/120)%2:0,null,pos)});
+  }
+  let pY=FP.投[1]; if(M.phase==='pitch'&&M.pt<M.wind) pY-=Math.sin(M.pt/M.wind*Math.PI)*2;
+  let px0=FP.投[0];
+  if(ev&&ev.fielder==='投'&&ev.tgt&&t>300){const k=t<800?(t-300)/500:Math.max(0,1-(t-800)/600); px0+=(ev.tgt[0]-px0)*k; pY+=(ev.tgt[1]-pY)*k;}
+  ents.push({y:pY,f:()=>drawGuy(g,def.pitcher,def.pal,px0,pY,0,null,'投')});
+  const curB=L=>G.pa&&L===offL()?G.pa.b:nextBatter(L);
+  if(M.phase==='pitch'||M.phase==='choose'){const b=curB(off); const sw=M.phase==='pitch'&&M.tap!==null&&M.pt>=M.wind+M.T-70?'swing':'ready'; ents.push({y:178,f:()=>drawGuy(g,b,off.pal,76,178,0,sw)});}
+  else if(ev&&!ev.steal&&(ev.pitchOnly||!M.assigned)) ents.push({y:178,f:()=>drawGuy(g,ev.b,off.pal,76,178,0,(ev.swung&&t>260)?'swing':'ready')});
+  else if(!G.over){const L=ev?ev.off:offL(); ents.push({y:178,f:()=>drawGuy(g,curB(L),L.pal,76,178,0,'ready')});}
+  for(const r of M.RD) ents.push({y:r.y,f:()=>drawGuy(g,r.p,r.pal,r.x,r.y,r.wp.length?Math.floor(r.walk*8)%2:0)});
+  ents.sort((a,b)=>a.y-b.y).forEach(e=>e.f());
+  let bx=null,by=0,bh=0;
+  if(M.phase==='pitch'){
+    const arrive=M.wind+M.T;
+    if(M.pt>=M.wind){const k=Math.min(1,(M.pt-M.wind)/M.T); bx=88+(M.brk?Math.sin(k*Math.PI)*5:0); by=140+k*34; bh=3*(1-k)+1;}
+    else {bx=FP.投[0]+3; by=pY-6; bh=0;}
+  } else if(ev&&!ev.steal){
+    if(t<300){const k=t/300; bx=88; by=140+k*34; bh=3;}
+    else if(ev.tgt&&t<800){const k=(t-300)/500; bx=88+(ev.tgt[0]-88)*k; by=174+(ev.tgt[1]-174)*k; bh=ev.arc*4*k*(1-k)+1;}
+  }
+  if(bx!==null){fr(g,Math.round(bx)-1,Math.round(by),2,1,'rgba(20,40,20,.45)'); fr(g,Math.round(bx)-1,Math.round(by-bh)-1,2,2,'#ffffff');}
+  // strike zone panel (catcher's view)
+  let pl=null,k=1;
+  if(M.phase==='pitch'){pl=M.pl; k=M.pt<M.wind?0:Math.min(1,(M.pt-M.wind)/M.T);}
+  else if(ev&&ev.pl&&t<650){pl=ev.pl; k=Math.min(1,t/300);}
+  if(pl) drawZone(g,pl,k,M.phase==='choose'||(M.phase==='pitch'&&M.pt<M.wind));
+}
+function drawZone(g,pl,k,wind){
+  const X=3,Y=78,W=48,H=60,cx=X+24,cy=Y+31,hw=10,hh=13;
+  g.fillStyle='rgba(14,24,44,.78)'; g.fillRect(X,Y,W,H);
+  g.fillStyle='rgba(255,255,255,.9)'; g.fillRect(cx-hw,cy-hh,hw*2+1,1); g.fillRect(cx-hw,cy+hh,hw*2+1,1); g.fillRect(cx-hw,cy-hh,1,hh*2+1); g.fillRect(cx+hw,cy-hh,1,hh*2+1);
+  g.fillStyle='rgba(255,255,255,.25)'; for(let i=1;i<3;i++){g.fillRect(cx-hw+Math.round(hw*2*i/3),cy-hh,1,hh*2); g.fillRect(cx-hw,cy-hh+Math.round(hh*2*i/3),hw*2,1);}
+  fr(g,cx-6,Y+H-5,13,2,'#f4f4f4');
+  if(wind) return;
+  const e=k*k; const ox=pl.bx*(1-k)*(1-k);
+  const x=cx+((pl.x+ox)*e+0*(1-e))*hw, y=cy+(pl.y*e)*hh;
+  const r=Math.max(1,Math.round(1+k*2.4));
+  disc(g,Math.round(x),Math.round(y),r,'#ffffff'); if(r>1) fr(g,Math.round(x)-1,Math.round(y),1,1,'#e04848');
+}
+
+/* ---------- input ---------- */
+hcv.addEventListener('click',e=>{
+  const rc=hcv.getBoundingClientRect(); const x=(e.clientX-rc.left)/rc.width*LW, y=(e.clientY-rc.top)/rc.height*LH;
+  const c=Math.floor(x/16), r=Math.floor(y/16);
+  if(buildMode){
+    if(!isLot(c,r)||facAt(c,r)){$('#hintTxt').textContent='そこには建てられません。空き地をタップ'; return;}
+    const cost=facCost(buildMode); if(S.money<cost){$('#hintTxt').textContent='お金が足りません'; return;}
+    S.money-=cost; S.fac.push({t:buildMode,x:c,y:r}); buildBG();
+    hfloat(c*16+8,r*16+2,'完成！','up big'); news(`${FAC[buildMode].name}が完成しました！`);
+    buildMode=null; $('#hint').hidden=true; save(); renderHUD(); return;
+  }
+  let best=null,bd=10; for(const p of S.players){const h=HS.get(p.id); if(!h)continue; const d=Math.hypot(h.x-x,h.y-9-y); if(d<bd){bd=d; best=p;}}
+  if(best){openPlayer(best.id); return;}
+  const f=facAt(c,r);
+  if(f) modal(FAC[f.t].name,`<p>${FAC[f.t].desc}</p><p class="note">同じ施設の数：${cnt(f.t)}</p>`,[{label:'撤去する',sub:true,fn:(el)=>{if(el.dataset.c!=='1'){el.dataset.c='1'; el.textContent='お金は戻りません。もう一度タップ'; return false;} S.fac=S.fac.filter(x=>x!==f); buildBG(); save(); closeModal(); return false;}},{label:'閉じる',sub:true}]);
+});
+$('#hintX').onclick=()=>{buildMode=null; $('#hint').hidden=true;};
+const GO={cup:()=>openCup(),players:()=>openPlayers(),fac:()=>openFac(),scout:()=>openScout(),rec:()=>openRec()};
+document.querySelectorAll('.si').forEach((b,i)=>b.onclick=()=>{if(!S)return; navI=i; applyNav(); GO[b.dataset.go]();});
+$('#pSpeed').onclick=()=>{if(!S)return; const o=[1,2,4,0]; S.speed=o[(o.indexOf(S.speed)+1)%4]; renderHUD(); save();};
+$('#pMenu').onclick=()=>{if(!S||M)return; if(!ov.hidden)return; toggleSide();};
+function toggleSide(force){const sd=$('#side'); sd.hidden=force===undefined?!sd.hidden:!force; navI=sd.hidden?-1:0; applyNav();}
+/* controller navigation */
+let navI=-1;
+function navList(){
+  if(!ov.hidden) return [...$('#ovB').querySelectorAll('.row:not(.lock),.btn'),...$('#ovF').querySelectorAll('.btn')];
+  if(!$('#side').hidden) return [...$('#side').querySelectorAll('.si')];
+  return [];
+}
+function applyNav(){document.querySelectorAll('.nav').forEach(e=>e.classList.remove('nav')); const L=navList(); if(navI>=0&&L[navI]){L[navI].classList.add('nav'); L[navI].scrollIntoView({block:'nearest'});}}
+function navMove(d){const L=navList(); if(!L.length) return; navI=navI<0?(d>0?0:L.length-1):(navI+d+L.length)%L.length; applyNav();}
+function padOK(){
+  if(!S) return;
+  if(M){swingTap(); return;}
+  const L=navList();
+  if(!L.length){toggleSide(true); return;}
+  const e=L[navI]; if(e) e.click(); else { const f=[...$('#ovF').querySelectorAll('.btn')].pop(); if(f&&!ov.hidden) f.click(); }
+}
+function padBack(){
+  if(!S||M) return;
+  if(!ov.hidden){const b=[...$('#ovF').querySelectorAll('.btn')].find(x=>/閉じる|もどる/.test(x.textContent)); if(b) b.click(); applyNav(); return;}
+  if(buildMode){buildMode=null; $('#hint').hidden=true; return;}
+  if(!$('#side').hidden) toggleSide(false);
+}
+function padDir(d){
+  if(!S) return;
+  if(M){
+    if(d!=='left'&&d!=='right') return; const dir=d==='left'?-1:1;
+    if(!$('#mOff').hidden){const o=['hit','hr','walk']; M.sel=o[(Math.max(0,o.indexOf(M.sel))+dir+3)%3]; updCtl();}
+    else if(!$('#mDef').hidden){const o=['normal','break','full']; M.pitch=o[(o.indexOf(M.pitch)+dir+3)%3]; updCtl();}
+    return;
+  }
+  if(ov.hidden&&$('#side').hidden){toggleSide(true); return;}
+  navMove(d==='up'||d==='left'?-1:1);
+}
+document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault(); padDir(b.dataset.d);}));
+$('#pOK').addEventListener('pointerdown',e=>{e.preventDefault(); padOK();});
+$('#pBack').onclick=padBack;
+document.addEventListener('keydown',e=>{const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[e.key]; if(k){e.preventDefault(); padDir(k);} else if(e.key==='Enter'||e.key===' '){if(document.activeElement&&document.activeElement.tagName==='INPUT')return; e.preventDefault(); padOK();} else if(e.key==='Escape'||e.key==='Backspace'){if(document.activeElement&&document.activeElement.tagName==='INPUT')return; padBack();}});
+function tickClock(){const d=new Date(); $('#clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+tickClock(); setInterval(tickClock,15000);
+function drawIcons(){
+  document.querySelectorAll('canvas[data-ic]').forEach(c=>{const g=c.getContext('2d'); g.imageSmoothingEnabled=false; g.clearRect(0,0,18,18);
+    switch(c.dataset.ic){
+      case 'cup': fr(g,3,2,1,14,'#5a4a3a'); for(let y=0;y<4;y++)for(let x=0;x<5;x++) fr(g,4+x*2,3+y*2,2,2,(x+y)%2?'#fff':'#222'); fr(g,4,11,10,1,'#222'); break;
+      case 'players': g.drawImage(sprite({sk:1,hc:0,hs:0,ey:1,mo:1,gl:0,mu:0,bd:0,bl:1,bu:1},{c:S?S.color:'#d13b3b',u:'#fafafa',p:'#e4e4e4'},{}),2,0); break;
+      case 'fac': drawFac(g,'stall',1,1); break;
+      case 'scout': disc(g,7,7,5,'#2a2a2a'); disc(g,7,7,3,'#9fd4ff'); fr(g,6,5,2,1,'#fff'); for(let i=0;i<5;i++) fr(g,11+i,11+i,2,2,'#6b3f1f'); break;
+      case 'rec': fr(g,4,3,10,6,'#f0b400'); fr(g,2,4,2,3,'#f0b400'); fr(g,14,4,2,3,'#f0b400'); fr(g,6,9,6,2,'#d99a00'); fr(g,8,11,2,3,'#d99a00'); fr(g,5,14,8,2,'#7a4a22'); fr(g,6,4,2,3,'#fff3b0'); break;
+    }});
+}
+document.querySelectorAll('[data-ms]').forEach(b=>b.onclick=()=>{setMS(+b.dataset.ms); save();});
+document.querySelectorAll('[data-bt]').forEach(b=>b.onclick=()=>chooseBt(b.dataset.bt));
+document.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{if(!M)return; M.pitch=b.dataset.pt; updCtl();});
+$('#relief').onclick=()=>{if(!M)return; const d=defL(); if(!d.mine||!d.pen.length)return; const t=changePitcher(d); if(t) addLog(t); updCtl();};
+$('#mAuto').onclick=()=>{S.auto=!S.auto; if(M&&S.auto&&M.phase==='choose') M.phase='idle'; updAuto(); updCtl(); save();};
+$('#mSkip').onclick=()=>{if(!M||M.done)return; const G=M.G; while(!G.over) pitch(G); closeMatch(); finishGame(G);};
+
+/* ---------- layout ---------- */
+function fit(wrap,stage,lw,lh){const W=stage.clientWidth,H=stage.clientHeight; if(!W||!H)return; const s=Math.min(W/lw,(H-6)/lh); wrap.style.width=Math.floor(lw*s)+'px'; wrap.style.height=Math.floor(lh*s)+'px';}
+function fitAll(){fit($('#hwrap'),$('#stage'),LW,LH); if(!$('#match').hidden) fit($('#mwrapc'),$('#mstage'),MW,MH);}
+window.addEventListener('resize',fitAll);
+let fitN=0;
+
+/* ---------- main loop ---------- */
+let last=performance.now(), acc=0, started=false;
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(started){
+    if(M){ if(fitN++%30===0) fitAll(); matchUpdate(dt); }
+    else {
+      if(!paused&&ov.hidden&&!buildMode&&S.speed>0){acc+=dt*1000; const need=DAY_MS/S.speed; if(acc>=need){acc=0; tick();} $('#hProg').style.width=Math.min(100,acc/need*100)+'%';}
+      drawHome(dt);
+    }
+  } else drawTitle(dt);
+  requestAnimationFrame(loop);
+}
+
+/* ---------- title ---------- */
+const tcv=$('#tcv'),tctx=tcv.getContext('2d'); let tcol=COLORS[0], tt=0;
+const tguys=[0,1,2].map(()=>({look:makeLook()}));
+function drawTitle(dt){
+  tt+=dt; const g=tctx; fr(g,0,0,96,32,'#62b44d'); fr(g,0,25,96,7,'#c99659'); fr(g,0,24,96,1,'#8a6a3d');
+  const pal={c:tcol,u:'#fafafa',p:'#e4e4e4'}; const b=Math.floor(tt*2)%2;
+  drawGuy(g,tguys[0],pal,20,26+b,0,Math.floor(tt*1.5)%2?'swing':'ready');
+  drawGuy(g,tguys[1],pal,48,26+(1-b),0,null,'投');
+  drawGuy(g,tguys[2],pal,76,26,Math.floor(tt*4)%2,null,'中');
+  if(Math.floor(tt)%4===0&&tt%1<dt) tguys.forEach(x=>x.look=makeLook());
+}
+const sw=$('#tSw'); COLORS.forEach((c,i)=>{const b=document.createElement('button'); b.style.background=c; b.setAttribute('aria-label','チームカラー'+(i+1)); if(i===0)b.classList.add('on'); b.onclick=()=>{tcol=c; sw.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');}; sw.appendChild(b);});
+function startGame(){ $('#title').hidden=true; started=true; buildBG(); drawIcons(); renderHUD(); fitAll(); setTimeout(fitAll,300); }
+const existing=loadSave(); if(existing&&existing.v===3){$('#tCont').hidden=false;}
+const bestRec=loadBest(); if(bestRec) $('#tBest').textContent=`ハイスコア：${bestRec.money.toLocaleString()}万円`;
+$('#tLoad').onclick=()=>{S=loadSave(); if(!S){$('#tErr').textContent='セーブデータが読めませんでした'; return;} startGame();};
+$('#tNew').onclick=()=>{
+  const n=$('#tName').value.trim(); if(!n){$('#tErr').textContent='チームの名前を入れてください'; return;}
+  if(existing&&existing.v===3&&$('#tNew').dataset.c!=='1'){$('#tNew').dataset.c='1'; $('#tNew').textContent='前のデータが消えます。もう一度タップ'; return;}
+  newSave(n,tcol); save(); startGame();
+};
+$('#tName').addEventListener('input',()=>$('#tErr').textContent='');
+requestAnimationFrame(loop);
+</script>
+
+</html>
