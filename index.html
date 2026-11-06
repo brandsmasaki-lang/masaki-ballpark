@@ -226,7 +226,7 @@ body{background:#15171c}
     <div class="date"><b id="tY">1</b>年<b id="tM">4</b>月<b id="tW">1</b>週<small id="tD">月曜</small></div>
     <div class="moneybox" id="hMoneyBox"><span id="hMoney">0</span><small>万円</small></div>
   </header>
-  <div class="subtop"><span>人気 <b id="hPop">0</b></span><span class="prog"><i id="hProg"></i></span><span>残り <b id="hYears">12</b> 年</span></div>
+  <div class="subtop"><span>ファン <b id="hPop">0</b> 人</span><span class="prog"><i id="hProg"></i></span><span>残り <b id="hYears">12</b> 年</span></div>
   <div id="stage">
     <div class="cwrap" id="hwrap">
       <canvas id="hcv" width="352" height="384" aria-label="球場とまわりの施設"></canvas>
@@ -335,17 +335,17 @@ const FAC={
   cage:{name:'バッティング練習場',cost:180,size:2,desc:'バッティングの練習効率が上がる'},
   knock:{name:'ノック場',cost:160,size:2,desc:'守備の練習効率が上がる'},
   dorm:{name:'選手寮',cost:260,size:3,desc:'選手の疲れがたまりにくくなる'},
-  stall:{name:'屋台',cost:80,size:1,desc:'お客さんが買い物をして毎日お金が入る'},
-  board:{name:'広告看板',cost:100,size:1,desc:'毎日の広告収入と、人気が少しずつ上がる'},
-  goods:{name:'グッズショップ',cost:220,size:2,desc:'毎日お金が入り、人気も少しずつ上がる'},
-  stand:{name:'観客席',cost:300,size:3,desc:'試合に入れるお客さんが800人増える'}};
+  board:{name:'広告看板',cost:100,size:1,desc:'広告を出してスポンサー料をもらう'},
+  stall:{name:'屋台',cost:200,size:1,desc:'試合の日に、お客さんが食べ物を買ってくれる'},
+  goods:{name:'グッズショップ',cost:400,size:2,desc:'ファンや観客がグッズを買ってくれる'},
+  stand:{name:'観客席',cost:400,size:3,desc:'試合に入れるお客さんが2000人増える'}};
 const SPACE=[4,6,8,11,14,17,20,24,28,33,40];
 const MENU={
   self:{name:'自主練',base:3,cost:0,fat:1,desc:'お金はかからないが、伸びは少なめ'},
   normal:{name:'通常練習',base:8,cost:15,fat:3,desc:'コーチをつけたふつうの練習'},
   camp:{name:'強化合宿',base:18,cost:60,fat:7,desc:'大きく伸びるが、お金がかかり疲れやすい'},
   rest:{name:'休養',base:0,cost:0,fat:-15,desc:'練習はお休み。疲れをしっかり取る'},
-  sales:{name:'営業回り',base:0,cost:0,fat:-5,desc:'スポンサーをまわってお金と人気をかせぐ'}};
+  sales:{name:'営業回り',base:0,cost:0,fat:-5,desc:'スポンサーをまわってお金とファンをかせぐ'}};
 const FOCUS={bal:'バランス',bat:'打撃',fld:'守備・走塁',pit:'投手'};
 
 /* ---------- sprites (14x18, built from parts) ---------- */
@@ -517,7 +517,7 @@ function mkRoster(base){
   r.forEach(p=>{sync(p); p.sal=salary(p);}); return r;
 }
 function newSave(name,color){
-  S={v:3,name,color,day:0,money:500,pop:10,speed:1,mspeed:2,auto:false,lastPlayed:-1,cmdWeek:-1,cmd:{menu:'normal',picks:[]},recs:{},nextId:1,players:[],fac:[],scouts:[],news:'',lvl:0,unlocked:0,round:0,titles:Array(LV.length).fill(0),rec:{w:0,l:0,d:0},opp:null,maxMoney:500};
+  S={v:3,name,color,day:0,money:500,pop:100,speed:1,mspeed:2,auto:false,lastPlayed:-1,cmdWeek:-1,cmd:{menu:'normal',picks:[]},recs:{},nextId:1,players:[],fac:[],scouts:[],news:'',lvl:0,unlocked:0,round:0,titles:Array(LV.length).fill(0),rec:{w:0,l:0,d:0},opp:null,maxMoney:500};
   S.players=mkRoster(30);
   S.scouts=genScouts();
   S.news='球団が誕生！ まずは屋台を建ててお金をかせごう';
@@ -660,21 +660,25 @@ function trainDay(){
     } else p.fat=clamp(p.fat-(M.base?4:-M.fat)-cnt('dorm')*2,0,100);
   });
 }
-function facIncome(t,vis){vis=vis||(20+S.pop*1.2); const inc=LV[S.lvl].inc; return t==='stall'?vis*0.03*inc:t==='goods'?vis*0.045*inc:t==='board'?2*inc:0;}
+/* money (hidden from the player on purpose): signs pay a flat 5万/day; on game day, tickets 1500円 x crowd, each stall up to 100万 (full at 1000 crowd), each goods shop 1000円 x fans plus 1000円 x crowd. All game-day income scales with tournament level */
 function economy(){
-  const inc=LV[S.lvl].inc;
-  const vis=Math.round((20+S.pop*1.2)*rnd(0.85,1.15));
-  const money=['stall','goods','board'].reduce((s,t)=>s+cnt(t)*facIncome(t,vis),0);
-  S.money+=money; S.pop=S.pop+cnt('goods')*0.03+cnt('board')*0.02;
-  spawnVisitors(Math.min(8,Math.ceil(vis/14)));
-  if(money>=1) hfloat(88,150,`施設収入 +${Math.round(money)}万`,'money');
+  S.money+=cnt('board')*5;
+  spawnVisitors(Math.min(8,Math.ceil((20+S.pop*0.05)/14)));
+}
+function gameIncome(){
+  const inc=LV[S.lvl].inc, cap=1000+cnt('stand')*2000;
+  const att=Math.round(Math.min(cap,50+S.pop*0.8*rnd(0.85,1.1)));
+  const ticket=att*0.15*inc;
+  const stall=cnt('stall')*100*inc*Math.min(1,att/1000);
+  const goods=cnt('goods')?(cnt('goods')*S.pop*0.1+att*0.1)*inc:0;
+  return {att,total:Math.round(ticket+stall+goods)};
 }
 const EVENTS=[
-  ()=>{S.pop+=3; return '地元テレビで特集された！ 人気+3';},
-  ()=>{const m=Math.round((30+S.pop*0.5)*LV[S.lvl].inc); S.money+=m; return `スポンサーから応援金 ${m}万円！`;},
+  ()=>{const f=30*(S.lvl+1); S.pop+=f; return `地元テレビで特集された！ ファン+${f}人`;},
+  ()=>{const m=Math.round((30+S.pop*0.02)*LV[S.lvl].inc); S.money+=m; return `スポンサーから応援金 ${m}万円！`;},
   ()=>{const p=pick(S.players); const k=p.pos==='投'?pick(['pit','fld']):pick(['bat','fld']); const b=p[k]; p[k]=Math.min(99,p[k]+3); sync(p); return p[k]>b?`${p.name}が練習中にコツをつかんだ！ ${ABIL[k]}+${p[k]-b}`:null;},
   ()=>{S.players.forEach(p=>p.fat=Math.max(0,p.fat-20)); return 'ファンから差し入れ！ みんなの疲れが少し取れた';},
-  ()=>{S.pop+=1; return '子どもたちが練習を見学に来た。人気+1';}];
+  ()=>{S.pop+=10; return '子どもたちが練習を見学に来た。ファン+10人';}];
 function tick(){
   if(S.day>=TOTAL_YEARS*YEAR_DAYS){ending(); return;}
   const wd=S.day%7;
@@ -690,6 +694,7 @@ function tick(){
   save(); renderHUD();
 }
 function weekly(){
+  S.pop+=Math.round(teamStr(S.players)*0.1*(1+S.lvl*0.3));
   S.players.forEach(p=>{p.cond=clamp(p.cond+ri(-1,1)+(p.cond>3&&Math.random()<0.3?-1:0)+(p.cond<3&&Math.random()<0.3?1:0),1,5);});
   const avg=S.players.reduce((s,p)=>s+p.fat,0)/S.players.length;
   if(avg>60) news('選手たちがかなり疲れています。今週は「休養」がおすすめ');
@@ -745,7 +750,7 @@ function commandPrompt(){
         const c=menuCost(sel.menu); if(c>S.money) return false;
         if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='練習する選手を3人選んでください'; draw(); return false;}
         S.money-=c; S.cmd={menu:sel.menu,picks:sel.picks.slice()}; S.cmdWeek=weekIdx(S.day); HS.clear();
-        if(sel.menu==='sales'){const g=salesGain(); S.money+=g; S.pop+=1; news(`営業回りでスポンサー料 ${g}万円をもらいました！`);}
+        if(sel.menu==='sales'){const g=salesGain(); S.money+=g; S.pop+=10; news(`営業回りでスポンサー料 ${g}万円をもらいました！`);}
         else if(MENU[sel.menu].base>0) news(`今週は${MENU[sel.menu].name}：`+sel.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return `${p.name}（${ABS[x.ab]}）`;}).join('・'));
         else news(`今週は「${MENU[sel.menu].name}」でいきます`);
         closeModal(); paused=false; save(); renderHUD(); return false;}}]);
@@ -761,7 +766,7 @@ function commandPrompt(){
   };
   draw();
 }
-function salesGain(){return Math.round((20+S.pop*0.6)*LV[S.lvl].inc);}
+function salesGain(){return Math.round((20+S.pop*0.03)*LV[S.lvl].inc);}
 
 /* ---------- panels ---------- */
 function keyStats(p){const s=subStats(p).filter(([n,v])=>rank(v)!==rank(p.pos==='投'?p.pit:p.bat)&&v>=40).map(([n,v])=>`${n}${rank(v)}`); return AKEYS.map(k=>`${ABS[k]}${rk(p[k])}`).join(' ')+` <span class="note">${p.star?esc(p.star)+'・':''}${typeOf(p)}${s.length?'（'+s.join(' ')+'）':''}</span>`;}
@@ -794,7 +799,7 @@ function openPlayer(id){
 function openFac(){
   const inc=LV[S.lvl].inc, cap=spaceMax(), used=spaceUsed(), free=cap-used;
   const nextCap=SPACE[S.unlocked+1];
-  const b=modal('施設',`<p>空きスペース <b style="font-size:18px">${free}</b> / ${cap}${nextCap?`<br><span class="note">次の大会に進むと ${nextCap} まで広がります</span>`:''}</p><div class="sec">建てる</div>`+Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}${facIncome(k)?`<br><span class="good">1日 約${facIncome(k).toFixed(1)}万円の収入</span>`:''}</div></div><div style="text-align:right;white-space:nowrap"><b>${facCost(k)}万</b><br><span class="note">スペース${v.size}</span></div></div>`).join('')+
+  const b=modal('施設',`<p>空きスペース <b style="font-size:18px">${free}</b> / ${cap}${nextCap?`<br><span class="note">次の大会に進むと ${nextCap} まで広がります</span>`:''}</p><div class="sec">建てる</div>`+Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}</div></div><div style="text-align:right;white-space:nowrap"><b>${facCost(k)}万</b><br><span class="note">スペース${v.size}</span></div></div>`).join('')+
     (S.fac.length?`<div class="sec">建てた施設（タップで撤去）</div>`+S.fac.map((f,i)=>`<div class="row" data-rm="${i}"><canvas data-fac="${f.t}" width="16" height="16" style="width:24px;height:24px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm" style="font-size:14px">${FAC[f.t].name}</div><div class="sub">スペース${FAC[f.t].size}</div></div></div>`).join(''):'')+
     `<p class="note">走り込みには施設はいりません。いまの大会では施設収入が×${inc}になります。</p>`);
   b.querySelectorAll('canvas[data-fac]').forEach(c=>drawFac(c.getContext('2d'),c.dataset.fac,0,0));
@@ -1096,14 +1101,13 @@ function finishGame(G){
   const played=new Set([...my.order,...my.used]);
   S.players.forEach(p=>{const amt=played.has(p)?expAmt:expAmt/2; const ks=p.pos==='投'?['pit','fld']:['bat','fld']; ks.forEach(k=>addExp(p,k,amt/ks.length*rnd(0.7,1.3),true));});
   // money
-  const cap=600+cnt('stand')*800; const att=Math.round(Math.min(cap,(100+S.pop*15)*rnd(0.85,1.1)));
-  const ticket=Math.round(att*0.04*L.inc); const prize=res==='W'?L.prize:0;
+  const gi=gameIncome(), att=gi.att, ticket=gi.total; const prize=res==='W'?L.prize:0;
   S.money+=ticket+prize;
   let hrs=0; for(const p of my.order){const bx=G.box[p.id]; if(bx&&p.car){hrs+=bx.hr; for(const o of [p.st,p.car]){o.ab+=bx.ab; o.h+=bx.h; o.hr+=bx.hr; o.rbi+=bx.rbi; o.g=(o.g||0)+1;}}}
   const starter=my.used[0]; if(starter.car){const k=res==='W'?'w':'l'; starter.st[k]++; starter.car[k]++;}
   my.used.forEach((p,i)=>{p.fat=clamp((p.fat||0)+(i===0?30:14),0,100);});
   S.players.forEach(p=>{if(my.used.includes(p))return; if(my.order.includes(p)) p.fat=clamp(p.fat+3,0,100); else p.fat=clamp(p.fat-6,0,100);});
-  let dp=(res==='W'?0.5+S.lvl*0.2:0.2)+hrs*0.1;
+  let dp=Math.round((res==='W'?6:2)*(S.lvl+1)+hrs*2);
   let hero=null,hs=-1; for(const p of my.order){const bx=G.box[p.id]; if(!bx)continue; const sc=bx.rbi*2+bx.h+bx.hr*2; if(sc>hs){hs=sc; hero={p,bx};}}
   // tournament progress
   let cupMsg='', ask=false, titleBonus=0;
@@ -1112,9 +1116,9 @@ function finishGame(G){
   const shown=br;
   if(res==='W'){
     if(!advanceRound(br)){
-      titleBonus=L.prize*3; S.money+=titleBonus; dp+=3+S.lvl*1.5; S.titles[S.lvl]++;
+      titleBonus=L.prize*3; S.money+=titleBonus; dp+=60*(S.lvl+1); S.titles[S.lvl]++;
       cupMsg=`<p style="text-align:center;font-size:20px;font-weight:800;color:var(--bad)">${L.name} 優勝！！</p><p>優勝賞金 <span class="good">+${titleBonus}万円</span></p>`;
-      if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; ask=true; buildBG(); cupMsg+=`<p class="good">施設のスペースが ${spaceMax()} に広がりました！</p>`;}
+      if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; ask=true; dp+=100*S.unlocked; buildBG(); cupMsg+=`<p class="good">施設のスペースが ${spaceMax()} に広がりました！</p>`;}
       news(`${L.name}で優勝しました！`); S.br=null; S.round=0;
     } else { S.round=br.rounds.length-1; cupMsg=`<p>次は <b>${roundName(S.lvl,S.round)}</b>（来週の土曜）です。</p>`; news(`${L.name}、${roundName(S.lvl,S.round-1)}を突破！`); }
   } else {
@@ -1129,7 +1133,7 @@ function finishGame(G){
   S.lastPlayed=S.day; S.maxMoney=Math.max(S.maxMoney,S.money);
   const title=lottery?(res==='W'?'抽選勝ち':'抽選負け'):res==='W'?'勝利！':'敗北…';
   const col=res==='W'?'var(--bad)':res==='L'?'#3d85c6':'var(--muted)';
-  modal('試合結果',`<div style="text-align:center"><div style="font-size:32px;font-weight:800;color:${col}">${title}</div><div style="font-size:19px;font-weight:800">${esc(my.name)} ${ms} - ${os} ${esc(op.name)}</div></div>${lineTable(G)}${cupMsg}${hero&&hs>0?`<p>ヒーロー：<b>${esc(hero.p.name)}</b>（${hero.bx.ab}打数${hero.bx.h}安打${hero.bx.hr?` ${hero.bx.hr}本塁打`:''}${hero.bx.rbi?` ${hero.bx.rbi}打点`:''}）</p>`:''}<p>経験値 <b>+${expAmt}</b>（出場した選手）<br>観客 ${att.toLocaleString()}人　入場料 <span class="good">+${ticket}万円</span>${prize?`<br>勝利賞金 <span class="good">+${prize}万円</span>`:''}<br>人気 +${dp.toFixed(1)}</p>`,
+  modal('試合結果',`<div style="text-align:center"><div style="font-size:32px;font-weight:800;color:${col}">${title}</div><div style="font-size:19px;font-weight:800">${esc(my.name)} ${ms} - ${os} ${esc(op.name)}</div></div>${lineTable(G)}${cupMsg}${hero&&hs>0?`<p>ヒーロー：<b>${esc(hero.p.name)}</b>（${hero.bx.ab}打数${hero.bx.h}安打${hero.bx.hr?` ${hero.bx.hr}本塁打`:''}${hero.bx.rbi?` ${hero.bx.rbi}打点`:''}）</p>`:''}<p>経験値 <b>+${expAmt}</b>（出場した選手）<br>観客 ${att.toLocaleString()}人　試合の日の収入 <span class="good">+${ticket}万円</span>${prize?`<br>勝利賞金 <span class="good">+${prize}万円</span>`:''}<br>ファン +${dp}人（${Math.floor(S.pop).toLocaleString()}人）</p>`,
     [{label:'OK',fn:()=>{ if(ask) levelUpPrompt(); else {closeModal(); paused=false;} save(); renderHUD(); return false;}}]);
   save(); renderHUD();
 }
