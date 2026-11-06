@@ -1335,7 +1335,7 @@ const GO={cup:()=>openCup(),players:()=>openPlayers(),fac:()=>openFac(),scout:()
 document.querySelectorAll('.si').forEach((b,i)=>b.onclick=()=>{if(!S)return; navI=i; applyNav(); GO[b.dataset.go]();});
 $('#pSpeed').onclick=()=>{if(!S)return; const o=[1,2,4,0]; S.speed=o[(o.indexOf(S.speed)+1)%4]; renderHUD(); save();};
 $('#pMenu').onclick=()=>{if(!S||M)return; if(!ov.hidden)return; toggleSide();};
-function toggleSide(force){const sd=$('#side'); sd.hidden=force===undefined?!sd.hidden:!force; navI=sd.hidden?-1:0; applyNav();}
+function toggleSide(force){const sd=$('#side'); sd.hidden=force===undefined?!sd.hidden:!force; navI=sd.hidden?-1:0; applyNav(); $('#ticker').textContent=sd.hidden?S.news:'‖ メニューを開いている間は時間が止まっています（戻るで再開）';}
 /* controller navigation */
 let navI=-1;
 function navList(){
@@ -1400,7 +1400,7 @@ function loop(now){
   if(started){
     if(M){ matchUpdate(dt); }
     else {
-      if(!paused&&ov.hidden&&!buildMode&&S.speed>0){acc+=dt*1000; const need=DAY_MS/S.speed; if(acc>=need){acc=0; tick();} $('#hProg').style.width=Math.min(100,acc/need*100)+'%';}
+      if(!paused&&ov.hidden&&!buildMode&&$('#side').hidden&&S.speed>0){ /* time stops while any menu or window is open */acc+=dt*1000; const need=DAY_MS/S.speed; if(acc>=need){acc=0; tick();} $('#hProg').style.width=Math.min(100,acc/need*100)+'%';}
       drawHome(dt);
     }
   } else drawTitle(dt);
