@@ -277,7 +277,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.18</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.19</div></div>
  </div>
 </div>
 
@@ -663,7 +663,7 @@ function renderHUD(){
   $('#hPop').textContent=Math.floor(S.pop).toLocaleString();
   const L=LV[S.lvl];
   $('#hCup').innerHTML=`<b>${L.name}</b> ${L.rounds>1?roundName(S.lvl,S.round):''} 推奨${rk(L.req)} 自${rk(teamStr(S.players))}`;
-  $('#hCmd').innerHTML=S&&isCupMonth(S.day)?`<b>大会月</b>：毎週土曜に試合`:`今月 <b>${MENU[S.cmd.menu].name}</b>${MENU[S.cmd.menu].base&&S.cmd.picks?'：'+S.cmd.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return p?esc(p.name)+ABS[x.ab]:'';}).join(' '):''}`;
+  $('#hCmd').innerHTML=S&&isCupMonth(S.day)?(S.cupDoneM===monthIdx(S.day)?`今月の大会は終わりました（次は${nextCupStr(S.day)}）`:`<b>大会月</b>：毎週土曜に試合`):`今月 <b>${MENU[S.cmd.menu].name}</b>${MENU[S.cmd.menu].base&&S.cmd.picks?'：'+S.cmd.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return p?esc(p.name)+ABS[x.ab]:'';}).join(' '):''}`;
   $('#ticker').textContent=S.news;
   $('#pSpeed').textContent={1:'▶ ふつう',2:'▶▶ はやい',4:'▶▶▶ 超速',0:'‖ 停止中'}[S.speed];
 }
@@ -671,7 +671,7 @@ function news(t){S.news=t; $('#ticker').textContent=t;}
 
 /* ---------- training & economy ---------- */
 function facBonus(k){if(k==='run') return 0; const n=k==='bat'?cnt('cage'):k==='pit'?cnt('pen'):cnt('knock'); return Math.min(n,3)*(k==='fld'?0.6:0.3);}
-const EXP_K=2.5; /* tuned so an average squad reaches about B by year 12 */
+const EXP_K=1.7; /* tuned so an average squad reaches about B by year 12 */
 function needExp(p,k){return (20+p[k]*4.6)*EXP_K;}
 /* progress toward the next rank (F→E at 40, then every 10 points, S tops out at 99) */
 function nextRankAt(v){return v<40?40:v>=90?99:Math.floor(v/10)*10+10;}
@@ -729,7 +729,7 @@ function tick(){
   const wd=S.day%7;
   const cup=isCupMonth(S.day);
   if(!cup&&wd===0&&doyOf(S.day)%28<7&&S.cmdMonth!==monthIdx(S.day)){commandPrompt(); return;}
-  if(cup&&wd===5&&S.lastPlayed!==S.day){matchPrompt(); return;}
+  if(cup&&wd===5&&S.lastPlayed!==S.day&&S.cupDoneM!==monthIdx(S.day)){matchPrompt(); return;}
   if(wd<5){ if(cup) S.players.forEach(p=>p.fat=clamp(p.fat-3-cnt('dorm')*2,0,100)); else trainDay(); }
   economy();
   S.day++;
@@ -889,7 +889,7 @@ function openScout(){
 function cupInfo(i){const L=LV[i]; return `推奨${rk(L.req)}以上・${L.rounds}試合・勝利賞金${L.prize}万・経験×${L.exp}・施設収入×${L.inc}`;}
 function openCup(){
   const str=teamStr(S.players);
-  const b=modal('大会',`<p>自チーム力 ${rk(str)}　いま挑戦中：<b>${LV[S.lvl].name}</b> ${S.br?roundName(S.lvl,S.round):''}</p>${S.br?bracketHTML(S.br):`<p class="note">各大会には6チームが出場し、あなたのチームと合わせて7チームのトーナメントで戦います（1チームは1回戦がシード）。大会は1月・4月・7月・10月。その月の毎週土曜に1試合、3連勝で優勝です。</p>`}`+LV.map((L,i)=>{const lock=i>S.unlocked; return `<div class="row${lock?' lock':''}${i===S.lvl?' cur':''}" data-i="${i}"><div class="grow"><div class="nm">${lock?'？？？':L.name} ${S.titles[i]?'<span class="note">優勝'+S.titles[i]+'回</span>':''}</div><div class="sub">${lock?'ひとつ前の大会で優勝すると挑戦できます':cupInfo(i)}</div></div></div>`;}).join('')+`<p class="note">大会の途中では切りかえられません。負けても勝ったときと同じ経験値がもらえます。</p>`);
+  const b=modal('大会',`<p>自チーム力 ${rk(str)}　いま挑戦中：<b>${LV[S.lvl].name}</b> ${S.br?roundName(S.lvl,S.round):''}</p>${S.br?bracketHTML(S.br):`<p class="note">各大会には6チームが出場し、あなたのチームと合わせて7チームのトーナメントで戦います（1チームは1回戦がシード）。大会は1月・4月・7月・10月に1回ずつ。土曜に1試合ずつ戦い、3連勝で優勝です。負けたらその月の大会は終わりです。</p>`}`+LV.map((L,i)=>{const lock=i>S.unlocked; return `<div class="row${lock?' lock':''}${i===S.lvl?' cur':''}" data-i="${i}"><div class="grow"><div class="nm">${lock?'？？？':L.name} ${S.titles[i]?'<span class="note">優勝'+S.titles[i]+'回</span>':''}</div><div class="sub">${lock?'ひとつ前の大会で優勝すると挑戦できます':cupInfo(i)}</div></div></div>`;}).join('')+`<p class="note">大会の途中では切りかえられません。負けても勝ったときと同じ経験値がもらえます。</p>`);
   b.querySelectorAll('.row').forEach(r=>r.onclick=()=>{const i=+r.dataset.i; if(i>S.unlocked||i===S.lvl) return; if(S.br&&S.br.res[0].length){r.querySelector('.sub').innerHTML='<span class="bad">いまの大会が終わってから切りかえられます</span>'; return;} S.lvl=i; S.br=null; S.round=0; news(`挑戦する大会を「${LV[i].name}」にしました`); save(); renderHUD(); openCup();});
 }
 function recordsHTML(){
@@ -1185,13 +1185,13 @@ function finishGame(G){
       cupMsg=`<p style="text-align:center;font-size:20px;font-weight:800;color:var(--bad)">${L.name} 優勝！！</p><p>優勝賞金 <span class="good">+${titleBonus}万円</span></p>`;
       if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; dp+=100*S.unlocked; buildBG(); cupMsg+=`<p class="good">施設のスペースが ${spaceMax()} に広がりました！</p>`;}
       if(S.lvl<S.unlocked) ask=true; // offer the next tournament after every title, not only the first one
-      news(`${L.name}で優勝しました！`); S.br=null; S.round=0;
+      news(`${L.name}で優勝しました！ 次の大会は${nextCupStr(S.day)}`); S.br=null; S.round=0; S.cupDoneM=monthIdx(S.day);
     } else { S.round=br.rounds.length-1; cupMsg=`<p>次は <b>${roundName(S.lvl,S.round)}</b>（${isCupMonth(S.day+7)?'来週の土曜':nextCupStr(S.day)+'の大会月'}）です。</p>`; news(`${L.name}、${roundName(S.lvl,S.round-1)}を突破！`); }
   } else {
     br.out=true;
     while(advanceRound(br)){const rr=br.rounds.length-1; br.rounds[rr].forEach((m,i)=>br.res[rr][i]=simPair(m[0],m[1]));}
-    cupMsg=`<p>${lottery?'延長でも決着がつかず、抽選で敗退…':'敗退…'} 優勝は <b>${esc(teamKey(br.champ).name)}</b>。${isCupMonth(S.day+7)?'来週':nextCupStr(S.day)}から新しい大会に挑戦しよう。経験はしっかり積めました。</p>`;
-    news(`${L.name}は${roundName(S.lvl,r)}で敗退。経験値はしっかりもらえた`); S.br=null; S.round=0;
+    cupMsg=`<p>${lottery?'延長でも決着がつかず、抽選で敗退…':'敗退…'} 優勝は <b>${esc(teamKey(br.champ).name)}</b>。次の大会は${nextCupStr(S.day)}です。それまで練習で力をつけよう。経験はしっかり積めました。</p>`;
+    news(`${L.name}は${roundName(S.lvl,r)}で敗退。次の大会は${nextCupStr(S.day)}`); S.br=null; S.round=0; S.cupDoneM=monthIdx(S.day);
   }
   if(lottery&&res==='W') cupMsg='<p>延長でも決着がつかず、抽選で勝ち上がり！</p>'+cupMsg;
   cupMsg+=bracketHTML(shown);
