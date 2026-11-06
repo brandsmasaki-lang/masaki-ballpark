@@ -277,7 +277,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.19</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.20</div></div>
  </div>
 </div>
 
@@ -778,6 +778,7 @@ function picsIn(root,list,pal){root.querySelectorAll('canvas[data-pid]').forEach
 
 /* ---------- weekly command ---------- */
 let paused=false;
+const canPay=c=>c<=0||S.money>=c; /* free options must always work, even in the red */
 function menuCost(k){return Math.round(MENU[k].cost*4*LV[S.lvl].cost);} /* one command now covers a whole month (4 weeks) */
 function statLine(p){const t=p.st||{};
   if(p.pos==='投'){const era=t.po?(t.er*27/t.po).toFixed(2):'-.--'; return `防御率 <b>${era}</b>　球速 <b>${p.velo}</b>km`;}
@@ -786,18 +787,18 @@ function commandPrompt(){
   paused=true;
   const TIRED=90, tired=p=>p.fat>=TIRED;
   const sel={menu:S.cmd.menu,picks:(S.cmd.picks||[]).filter(x=>S.players.some(p=>p.id===x.id&&!tired(p))).slice(0,3)};
-  if(menuCost(sel.menu)>S.money) sel.menu='self';
+  if(!canPay(menuCost(sel.menu))) sel.menu='self';
   let msg='';
   const draw=()=>{
     const trains=MENU[sel.menu].base>0;
     const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
     const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id), tr=tired(p); return `<div class="prow${pk?' picked':''}${tr?' tired':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}${p.legacy?' <span class="rk" style="background:#e0457b">引継</span>':''}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}${tr?' <b class="bad">疲れすぎ</b>':''}</div><div class="sub st">${statLine(p)}${canSS(p)?' <b style="color:#8a2be2">SS覚醒できます！</b>':''}</div></div>`+akeys(p).map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}"${tr?' disabled':''} data-p="${p.id}" data-ab="${k}" title="次のランクまで ${Math.round(rankProg(p,k)*100)}%">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
     const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今月のコマンド`,
-      `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
-      `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${menuCost(sel.menu)>S.money?'　<span class="bad">お金が足りません</span>':''}</p>`+
+      `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=!canPay(c); return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
+      `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${!canPay(menuCost(sel.menu))?'　<span class="bad">お金が足りません</span>':''}</p>`+(S.money<0?`<p class="bad" style="margin:2px 0">赤字です。無料の「自主練」「休養」、お金がもらえる「営業回り」で立て直そう</p>`:'')+
       (trains?`<div class="pickhd">強化選手を3人選ぶ <b>${sel.picks.length}/3</b><button class="btn sm sub" id="pReset" style="margin-left:auto;font-size:13px;padding:3px 10px"${sel.picks.length?'':' disabled'}>リセット</button></div><div class="xnote">打・守・投のどれかをタップ。ほかの選手もふつうに練習して少しずつ伸びます（疲れ90%以上は選べません）</div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今月は練習しないので、全員が休んで疲れを取ります。</p>'),
       [{label:trains&&sel.picks.length<3?`あと${3-sel.picks.length}人選んでください`:`これで決定${menuCost(sel.menu)?`（-${menuCost(sel.menu)}万円）`:''}`,fn:()=>{
-        const c=menuCost(sel.menu); if(c>S.money) return false;
+        const c=menuCost(sel.menu); if(!canPay(c)) return false;
         if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='強化選手を3人選んでください'; draw(); return false;}
         S.money-=c; S.cmd={menu:sel.menu,picks:sel.picks.slice()}; S.cmdWeek=weekIdx(S.day); S.cmdMonth=monthIdx(S.day); HS.clear();
         if(sel.menu==='sales'){const g=salesGain(); S.money+=g; S.pop+=40; news(`営業回りでスポンサー料 ${g}万円をもらいました！`);}
@@ -805,7 +806,7 @@ function commandPrompt(){
         else news(`今月は「${MENU[sel.menu].name}」でいきます`);
         closeModal(); paused=false; save(); renderHUD(); return false;}}]);
     picsIn(b,list);
-    b.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{if(menuCost(el.dataset.m)>S.money)return; sel.menu=el.dataset.m; msg=''; draw();});
+    b.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{if(!canPay(menuCost(el.dataset.m)))return; sel.menu=el.dataset.m; msg=''; draw();});
     const rs=b.querySelector('#pReset'); if(rs) rs.onclick=()=>{sel.picks=[]; msg=''; draw();};
     b.querySelectorAll('[data-ab]').forEach(el=>el.onclick=()=>{
       const id=+el.dataset.p, ab=el.dataset.ab; const cur=sel.picks.find(x=>x.id===id);
