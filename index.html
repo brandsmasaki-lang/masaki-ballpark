@@ -165,6 +165,8 @@ table.sb td.tot{color:var(--board-hi);font-size:15px}
 .prow .sub{font-size:11px;color:var(--muted);white-space:nowrap;line-height:1.3}
 .prow .sub .fat{width:32px}
 .prow .sub.st{color:var(--win-ink)}
+.prow.tired{opacity:.55}
+.prow .btn.sm:disabled{cursor:default}
 .pickhd{display:flex;align-items:center;gap:4px}
 .prow .btn.sm{padding:3px 3px;font-size:12px;display:flex;align-items:center;gap:2px;flex:none}
 .prow .btn.sm .rk{font-size:11px;min-width:1.1em;padding:0 2px}
@@ -275,7 +277,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.12</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.13</div></div>
  </div>
 </div>
 
@@ -303,7 +305,7 @@ const ri=(a,b)=>Math.floor(rnd(a,b+1));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const KEY='masaki-ballpark-save-v3', BEST_KEY='masaki-ballpark-best';
+const KEY='masaki-ballpark-save-v3', BEST_KEY='masaki-ballpark-best', LEGACY_KEY='masaki-ballpark-legacy';
 const LW=176,LH=192,MW=176,MH=200,DAY_MS=1500,MAX_ROSTER=16,YEAR_DAYS=336,TOTAL_YEARS=12;
 const WD='月火水木金土日';
 const SURN='佐藤 鈴木 高橋 田中 伊藤 渡辺 山本 中村 小林 加藤 吉田 山田 佐々木 山口 松本 井上 木村 林 清水 山崎 森 池田 橋本 阿部 石川 前田 藤田 小川 岡田 後藤 長谷川 村上 近藤 石井 坂本 遠藤 青木 藤井 西村 福田 太田 三浦 岡本 松田 中川 原田 小野 竹内 金子 和田 中山 石田 上田 森田 柴田 酒井 工藤 横山 宮崎 宮本 内田 高木 安藤 島田 谷口 大野 丸山 今井 河野 藤原 武田 村田 上野 杉山 増田 平野 大塚 千葉 久保 松井 小島 岩崎 桜井 野口 松尾 野村 木下 菊地 佐野 大西 杉本 新井 浜田 菅原 市川 水野 小松 高野 南 北村 東 西田'.split(' ');
@@ -528,6 +530,11 @@ function mkRoster(base){
 function newSave(name,color){
   S={v:3,name,color,day:0,money:500,pop:100,speed:1,mspeed:2,auto:false,lastPlayed:-1,cmdWeek:-1,cmd:{menu:'normal',picks:[]},recs:{},nextId:1,players:[],fac:[],scouts:[],news:'',lvl:0,unlocked:0,round:0,titles:Array(LV.length).fill(0),rec:{w:0,l:0,d:0},opp:null,maxMoney:500};
   S.players=mkRoster(30);
+  const leg=loadLegacy(); if(leg.length){
+    leg.slice(0,3).forEach(q=>{const same=S.players.filter(p=>p.pos===q.pos&&!p.legacy).sort((a,b)=>ovr(a)-ovr(b)); if(same[0]) S.players=S.players.filter(p=>p!==same[0]);
+      const p={...q,id:uid(),legacy:true,fat:0,cond:3,exp:{},st:{ab:0,h:0,hr:0,rbi:0,w:0,l:0,g:0},hist:[]}; p.age=Math.max(18,(q.age||24)-12); sync(p); p.sal=salary(p); S.players.push(p);});
+    try{localStorage.removeItem(LEGACY_KEY);}catch(e){}
+  }
   S.scouts=genScouts();
   S.news='球団が誕生！ まずは屋台を建ててお金をかせごう';
 }
@@ -535,6 +542,7 @@ function cnt(t){return S.fac.filter(f=>f.t===t).length;}
 function facCost(t){return Math.round(FAC[t].cost*(1+0.8*cnt(t)));}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(KEY); return s?JSON.parse(s):null;}catch(e){return null;}}
+function loadLegacy(){try{const a=JSON.parse(localStorage.getItem(LEGACY_KEY)||'[]'); return Array.isArray(a)?a:[];}catch(e){return [];}}
 function loadBest(){try{return JSON.parse(localStorage.getItem(BEST_KEY)||'null');}catch(e){return null;}}
 function teamStr(players){const a=players.map(ovr).sort((x,y)=>y-x).slice(0,10); return a.reduce((s,v)=>s+v,0)/a.length;}
 function rank(v){return v>=90?'S':v>=80?'A':v>=70?'B':v>=60?'C':v>=50?'D':v>=40?'E':'F';}
@@ -750,17 +758,18 @@ function statLine(p){const t=p.st||{};
   const avg=t.ab?(t.h/t.ab).toFixed(3).replace(/^0/,''):'.---'; return `打率 <b>${avg}</b>　HR <b>${t.hr||0}</b>`;}
 function commandPrompt(){
   paused=true;
-  const sel={menu:S.cmd.menu,picks:(S.cmd.picks||[]).filter(x=>S.players.some(p=>p.id===x.id)).slice(0,3)};
+  const TIRED=90, tired=p=>p.fat>=TIRED;
+  const sel={menu:S.cmd.menu,picks:(S.cmd.picks||[]).filter(x=>S.players.some(p=>p.id===x.id&&!tired(p))).slice(0,3)};
   if(menuCost(sel.menu)>S.money) sel.menu='self';
   let msg='';
   const draw=()=>{
     const trains=MENU[sel.menu].base>0;
     const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
-    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id); return `<div class="prow${pk?' picked':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}</div><div class="sub st">${statLine(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}" data-p="${p.id}" data-ab="${k}" title="次のランクまで ${Math.round(rankProg(p,k)*100)}%">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
+    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id), tr=tired(p); return `<div class="prow${pk?' picked':''}${tr?' tired':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}${p.legacy?' <span class="rk" style="background:#e0457b">引継</span>':''}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}${tr?' <b class="bad">疲れすぎ</b>':''}</div><div class="sub st">${statLine(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}"${tr?' disabled':''} data-p="${p.id}" data-ab="${k}" title="次のランクまで ${Math.round(rankProg(p,k)*100)}%">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
     const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今週のコマンド`,
       `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
       `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${menuCost(sel.menu)>S.money?'　<span class="bad">お金が足りません</span>':''}</p>`+
-      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><button class="btn sm sub" id="pReset" style="margin-left:auto;font-size:13px;padding:3px 10px"${sel.picks.length?'':' disabled'}>リセット</button></div><div class="xnote">打・守・投のどれかをタップ</div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
+      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><button class="btn sm sub" id="pReset" style="margin-left:auto;font-size:13px;padding:3px 10px"${sel.picks.length?'':' disabled'}>リセット</button></div><div class="xnote">打・守・投のどれかをタップ（疲れ90%以上の選手は休ませます）</div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
       [{label:trains&&sel.picks.length<3?`あと${3-sel.picks.length}人選んでください`:`これで決定${menuCost(sel.menu)?`（-${menuCost(sel.menu)}万円）`:''}`,fn:()=>{
         const c=menuCost(sel.menu); if(c>S.money) return false;
         if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='練習する選手を3人選んでください'; draw(); return false;}
@@ -774,6 +783,7 @@ function commandPrompt(){
     const rs=b.querySelector('#pReset'); if(rs) rs.onclick=()=>{sel.picks=[]; msg=''; draw();};
     b.querySelectorAll('[data-ab]').forEach(el=>el.onclick=()=>{
       const id=+el.dataset.p, ab=el.dataset.ab; const cur=sel.picks.find(x=>x.id===id);
+      if(tired(S.players.find(p=>p.id===id))) return;
       if(cur&&cur.ab===ab) sel.picks=sel.picks.filter(x=>x!==cur);
       else if(cur) cur.ab=ab;
       else if(sel.picks.length<3) sel.picks.push({id,ab});
@@ -1174,7 +1184,22 @@ function ending(){
   if(isBest){try{localStorage.setItem(BEST_KEY,JSON.stringify({money:score,name:S.name,lvl:S.unlocked}));}catch(e){}}
   const tt=S.titles.reduce((a,b)=>a+b,0);
   modal('12年間おつかれさまでした！',`<div style="text-align:center"><div class="note">最終資金（スコア）</div><div style="font-size:30px;font-weight:800;color:var(--money)">${score.toLocaleString()}万円</div>${isBest?'<p class="bad"><b>ハイスコア更新！</b></p>':`<p class="note">ハイスコア ${best.money.toLocaleString()}万円</p>`}</div><p>到達した大会：<b>${LV[S.unlocked].name}</b><br>優勝 ${tt}回　通算 ${S.rec.w}勝${S.rec.l}敗${S.rec.d}分<br>最高資金 ${Math.floor(S.maxMoney).toLocaleString()}万円</p>`,
-    [{label:'もう一度はじめる',fn:()=>{try{localStorage.removeItem(KEY);}catch(e){} location.reload(); return false;}}]);
+    [{label:'引き継ぐ選手を選ぶ',fn:()=>{legacyPick(); return false;}}]);
+}
+/* after 12 years, keep up to 3 favorite players for the next run */
+function legacyPick(){
+  const sel=new Set(); const list=S.players.slice().sort((a,b)=>ovr(b)-ovr(a));
+  const draw=()=>{
+    const rows=list.map(p=>`<div class="prow${sel.has(p.id)?' picked':''}" data-lp="${p.id}" style="cursor:pointer"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)} <span class="note">${POSN[p.pos]}</span></div><div class="sub st">${AKEYS.map(k=>`${ABS[k]}${rk(p[k])}`).join(' ')}　通算 ${p.pos==='投'?`${p.car.w||0}勝${p.car.l||0}敗`:`${p.car.hr||0}本塁打`}</div></div><b style="font-size:18px">${sel.has(p.id)?'✔':''}</b></div>`).join('');
+    const b=modal('次の12年に連れていく選手',`<p>お気に入りの選手を<b>3人まで</b>選べます。今の能力のまま、次のチームに入ります。<span class="note">（同じポジションの選手と入れかわります）</span></p><div class="pickhd">選んだ人数 <b>${sel.size}/3</b><button class="btn sm sub" id="lpReset" style="margin-left:auto;font-size:13px;padding:3px 10px"${sel.size?'':' disabled'}>リセット</button></div><div class="plist">${rows}</div>`,
+      [{label:sel.size?`この${sel.size}人を連れて、もう一度はじめる`:'だれも連れずに、もう一度はじめる',fn:()=>{
+        const keep=list.filter(p=>sel.has(p.id)).map(p=>{const q=JSON.parse(JSON.stringify(p)); delete q.legacy; return q;});
+        try{localStorage.setItem(LEGACY_KEY,JSON.stringify(keep)); localStorage.removeItem(KEY);}catch(e){} location.reload(); return false;}}]);
+    picsIn(b,list);
+    b.querySelector('#lpReset').onclick=()=>{sel.clear(); draw();};
+    b.querySelectorAll('[data-lp]').forEach(el=>el.onclick=()=>{const id=+el.dataset.lp; if(sel.has(id)) sel.delete(id); else if(sel.size<3) sel.add(id); const sc=$('#ovB').scrollTop; draw(); $('#ovB').scrollTop=sc;});
+  };
+  draw();
 }
 
 /* ---------- match screen ---------- */
@@ -1430,6 +1455,7 @@ function drawTitle(dt){
 const sw=$('#tSw'); COLORS.forEach((c,i)=>{const b=document.createElement('button'); b.style.background=c; b.setAttribute('aria-label','チームカラー'+(i+1)); if(i===0)b.classList.add('on'); b.onclick=()=>{tcol=c; sw.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');}; sw.appendChild(b);});
 function startGame(){ $('#title').hidden=true; started=true; buildBG(); drawIcons(); renderHUD(); fitAll(); setTimeout(fitAll,300); }
 const existing=loadSave(); if(existing&&existing.v===3){$('#tCont').hidden=false;}
+const legRec=loadLegacy(); if(legRec.length) $('#tBest').insertAdjacentHTML('afterend',`<br><span style="color:#ffd45c">引き継ぎ選手：${legRec.map(p=>esc(p.name)).join('・')}</span>`);
 const bestRec=loadBest(); if(bestRec) $('#tBest').textContent=`ハイスコア：${bestRec.money.toLocaleString()}万円`;
 $('#tLoad').onclick=()=>{S=loadSave(); if(!S){$('#tErr').textContent='セーブデータが読めませんでした'; return;} startGame();};
 $('#tNew').onclick=()=>{
