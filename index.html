@@ -146,6 +146,12 @@ table.sb td.tot{color:var(--board-hi);font-size:15px}
 .brm div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brm .w{font-weight:800}.brm .l{opacity:.45}
 .brm .sc{font-size:11px;color:var(--muted);text-align:right}
+.mtac{flex:none;height:2.9em;box-sizing:border-box;background:var(--win);border:3px solid var(--win-line);border-radius:8px;padding:3px 10px;font-size:13px;line-height:1.45;display:flex;flex-direction:column;justify-content:center;white-space:nowrap;overflow:hidden}
+.mtac b{color:var(--bad)}
+#match .sbw,#match .mlog,#match .mctl{flex:none}
+.tacg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.tacg .btn{font-size:14px;padding:6px 6px;text-align:left}
+.tacg .btn small{display:block;font-size:11px;font-weight:500;line-height:1.35}
 .prow{display:flex;align-items:center;gap:6px;padding:5px 4px;border-bottom:2px dashed var(--win-dash)}
 .prow.picked{background:#ffe7c2;border-radius:6px}
 .prow .grow{flex:1;min-width:0}
@@ -232,28 +238,11 @@ body{background:#15171c}
     <div class="sbw"><div id="sb"></div></div>
     <div id="mstage"><div class="cwrap" id="mwrapc"><canvas id="mcv" width="176" height="200" aria-label="試合の様子"></canvas><div class="fx" id="mfx"></div></div></div>
     <div class="mlog" id="mlog"></div>
-    <div class="mcmd" id="mOff" hidden>
-      <div class="lbl" id="offLbl">1球ごとに狙いを決めよう</div>
-      <div class="opts" id="offOpts">
-        <button class="btn sub" data-bt="hit">ヒット狙い</button>
-        <button class="btn sub" data-bt="hr">ホームラン狙い</button>
-        <button class="btn sub" data-bt="walk">フォアボール狙い</button>
-      </div>
-    </div>
-    <div class="mcmd" id="mDef" hidden>
-      <div class="lbl">守りの作戦（投げる球を選ぶ）</div>
-      <div class="opts" id="defOpts">
-        <button class="btn sub" data-pt="normal">ストレート</button>
-        <button class="btn sub" data-pt="break">変化球</button>
-        <button class="btn sub" data-pt="full">全力投球</button>
-        <button class="btn sub" id="relief">投手交代</button>
-      </div>
-    </div>
+    <div class="mtac" id="mTac"></div>
     <div class="mctl">
       <button class="btn sub" data-ms="1">×1</button>
       <button class="btn sub" data-ms="2">×2</button>
       <button class="btn sub" data-ms="4">×4</button>
-      <button class="btn sub" id="mAuto">手動</button>
       <button class="btn" id="mSkip">結果へ</button>
     </div>
   </div>
@@ -329,16 +318,17 @@ const OPP=[
   ['アメリカ代表','ドミニカ代表','キューバ代表','韓国代表','ベネズエラ代表'],
   ['アメリカ代表','ドミニカ代表','日本代表','メキシコ代表','台湾代表'],
   ['アメリカ代表','ドミニカ代表','日本代表','ベネズエラ代表','プエルトリコ代表']];
+/* facilities take up space; free space grows as higher tournaments open up. Running needs no facility */
 const FAC={
-  cage:{name:'バッティングケージ',cost:150,desc:'ミートとパワーの練習効率が上がる'},
-  pen:{name:'ブルペン',cost:150,desc:'投手の練習効率が上がる'},
-  track:{name:'ランニングコース',cost:120,desc:'走力の練習効率が上がる'},
-  knock:{name:'ノック場',cost:120,desc:'守備の練習効率が上がる'},
-  dorm:{name:'選手寮',cost:250,desc:'選手の疲れがたまりにくくなる'},
-  stall:{name:'屋台',cost:80,desc:'お客さんが買い物をして毎日お金が入る'},
-  goods:{name:'グッズショップ',cost:220,desc:'毎日お金が入り、人気も少しずつ上がる'},
-  stand:{name:'観客席',cost:300,desc:'試合に入れるお客さんが800人増える'},
-  board:{name:'広告看板',cost:100,desc:'毎日の広告収入と、人気が少しずつ上がる'}};
+  pen:{name:'ブルペン',cost:150,size:1,desc:'ピッチングの練習効率が上がる'},
+  cage:{name:'バッティング練習場',cost:180,size:2,desc:'バッティングの練習効率が上がる'},
+  knock:{name:'ノック場',cost:160,size:2,desc:'守備の練習効率が上がる'},
+  dorm:{name:'選手寮',cost:260,size:3,desc:'選手の疲れがたまりにくくなる'},
+  stall:{name:'屋台',cost:80,size:1,desc:'お客さんが買い物をして毎日お金が入る'},
+  board:{name:'広告看板',cost:100,size:1,desc:'毎日の広告収入と、人気が少しずつ上がる'},
+  goods:{name:'グッズショップ',cost:220,size:2,desc:'毎日お金が入り、人気も少しずつ上がる'},
+  stand:{name:'観客席',cost:300,size:3,desc:'試合に入れるお客さんが800人増える'}};
+const SPACE=[4,6,8,11,14,17,20,24,28,33,40];
 const MENU={
   self:{name:'自主練',base:3,cost:0,fat:1,desc:'お金はかからないが、伸びは少なめ'},
   normal:{name:'通常練習',base:8,cost:15,fat:3,desc:'コーチをつけたふつうの練習'},
@@ -510,16 +500,23 @@ const bg=document.createElement('canvas'); bg.width=LW; bg.height=LH;
 function isField(c,r){return c>=1&&c<=9&&r>=1&&r<=8;}
 function isRoad(c,r){return r===9||(c===5&&r>=10);}
 function isLot(c,r){return c>=0&&c<11&&r>=0&&r<12&&!isField(c,r)&&!isRoad(c,r);}
-function facAt(c,r){return S.fac.find(f=>f.x===c&&f.y===r);}
+const LOTS=(()=>{const a=[]; for(let r=0;r<12;r++) for(let c=0;c<11;c++) if(isLot(c,r)) a.push([c,r]); return a.sort((p,q)=>Math.hypot(p[0]-5,(p[1]-9.5)*1.3)-Math.hypot(q[0]-5,(q[1]-9.5)*1.3));})();
+function spaceMax(){return Math.min(LOTS.length,SPACE[S.unlocked]||40);}
+function spaceUsed(){return S.fac.reduce((s,f)=>s+(FAC[f.t]?FAC[f.t].size:0),0);}
+function layoutFac(){S.fac=S.fac.filter(f=>FAC[f.t]); let i=0; S.fac.forEach(f=>{f.tiles=LOTS.slice(i,i+FAC[f.t].size); i+=FAC[f.t].size; [f.x,f.y]=f.tiles[0]||[0,0];});}
+function facAt(c,r){return S.fac.find(f=>(f.tiles||[]).some(t=>t[0]===c&&t[1]===r));}
+function drawTree(g,x,y){fr(g,x,y,16,16,'#6fb554'); disc(g,x+8,y+6,5,'#2f7d3a'); disc(g,x+7,y+5,3,'#3f9a4a'); fr(g,x+7,y+11,2,4,'#7a4a22');}
 function buildBG(){
-  const g=bg.getContext('2d');
+  layoutFac();
+  const g=bg.getContext('2d'); const cap=spaceMax(), used=spaceUsed();
   for(let r=0;r<12;r++) for(let c=0;c<11;c++){
     const x=c*16,y=r*16;
     if(isRoad(c,r)){fr(g,x,y,16,16,'#cdb88f'); fr(g,x,y,16,1,'#b39d74'); if(r===9) fr(g,x,y+15,16,1,'#b39d74'); if((c+r)%2) fr(g,x+6,y+7,2,1,'#e3d3b1');}
-    else if(!isField(c,r)){fr(g,x,y,16,16,'#7cc35f'); if((c*3+r)%4===0){fr(g,x+4,y+5,1,2,'#5ea545'); fr(g,x+6,y+4,1,3,'#5ea545');} if((c+r*5)%7===0) fr(g,x+11,y+10,2,2,'#f4e37a');}
+    else if(!isField(c,r)){fr(g,x,y,16,16,'#7cc35f'); if((c*3+r)%4===0){fr(g,x+4,y+5,1,2,'#5ea545'); fr(g,x+6,y+4,1,3,'#5ea545');}}
   }
+  LOTS.forEach(([c,r],i)=>{const x=c*16,y=r*16; if(i>=cap) drawTree(g,x,y); else if(i>=used){g.fillStyle='rgba(255,255,255,.35)'; for(let k=1;k<15;k+=3){g.fillRect(x+k,y+1,1,1); g.fillRect(x+k,y+14,1,1); g.fillRect(x+1,y+k,1,1); g.fillRect(x+14,y+k,1,1);}}});
   drawField(g,16,16,144,128,88,136,26);
-  S.fac.forEach(f=>drawFac(g,f.t,f.x*16,f.y*16));
+  S.fac.forEach(f=>f.tiles.forEach(([c,r])=>drawFac(g,f.t,c*16,r*16)));
 }
 const HS=new Map(); let visitors=[]; let buildMode=null; let blinkT=0, tclock=0;
 function trainingNow(){return S.day%7<5;}
@@ -595,7 +592,7 @@ function renderHUD(){
 function news(t){S.news=t; $('#ticker').textContent=t;}
 
 /* ---------- training & economy ---------- */
-function facBonus(k){const n=k==='bat'?cnt('cage'):k==='pit'?cnt('pen'):cnt('knock')+cnt('track'); return Math.min(n,3)*0.25;}
+function facBonus(k){const n=k==='bat'?cnt('cage'):k==='pit'?cnt('pen'):cnt('knock'); return Math.min(n,3)*0.3;}
 function needExp(p,k){return 20+p[k]*4.6;}
 function addExp(p,k,amt,silent){
   if(p[k]>=99) return;
@@ -746,10 +743,20 @@ function openPlayer(id){
   const sel=b.querySelector('#posSel'); if(sel) sel.onchange=()=>{p.pos=sel.value; save(); picsIn(b,[p]);};
 }
 function openFac(){
-  const inc=LV[S.lvl].inc;
-  const b=modal('施設を建てる',Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}</div></div><div style="text-align:right;white-space:nowrap;font-weight:800">${facCost(k)}万</div></div>`).join('')+`<p class="note">いまの大会では施設収入が×${inc}になります。大会レベルを上げるほどお客さんがたくさんお金を使います。</p>`);
+  const inc=LV[S.lvl].inc, cap=spaceMax(), used=spaceUsed(), free=cap-used;
+  const nextCap=SPACE[S.unlocked+1];
+  const b=modal('施設',`<p>空きスペース <b style="font-size:18px">${free}</b> / ${cap}${nextCap?`<br><span class="note">次の大会に進むと ${nextCap} まで広がります</span>`:''}</p><div class="sec">建てる</div>`+Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}</div></div><div style="text-align:right;white-space:nowrap"><b>${facCost(k)}万</b><br><span class="note">スペース${v.size}</span></div></div>`).join('')+
+    (S.fac.length?`<div class="sec">建てた施設（タップで撤去）</div>`+S.fac.map((f,i)=>`<div class="row" data-rm="${i}"><canvas data-fac="${f.t}" width="16" height="16" style="width:24px;height:24px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm" style="font-size:14px">${FAC[f.t].name}</div><div class="sub">スペース${FAC[f.t].size}</div></div></div>`).join(''):'')+
+    `<p class="note">走り込みには施設はいりません。いまの大会では施設収入が×${inc}になります。</p>`);
   b.querySelectorAll('canvas[data-fac]').forEach(c=>drawFac(c.getContext('2d'),c.dataset.fac,0,0));
-  b.querySelectorAll('.row').forEach(r=>r.onclick=()=>{const k=r.dataset.k; if(S.money<facCost(k)){r.querySelector('.sub').innerHTML='<span class="bad">お金が足りません</span>'; return;} closeModal(); buildMode=k; $('#hintTxt').textContent=`${FAC[k].name}：建てる場所をタップ`; $('#hint').hidden=false;});
+  b.querySelectorAll('.row[data-k]').forEach(r=>r.onclick=()=>{const k=r.dataset.k, sub=r.querySelector('.sub');
+    if(FAC[k].size>free){sub.innerHTML=`<span class="bad">スペースが足りません（あと${FAC[k].size-free}必要）</span>`; return;}
+    if(S.money<facCost(k)){sub.innerHTML='<span class="bad">お金が足りません</span>'; return;}
+    S.money-=facCost(k); S.fac.push({t:k}); buildBG(); const f=S.fac[S.fac.length-1]; hfloat(f.x*16+8,f.y*16+2,'完成！','up big');
+    news(`${FAC[k].name}が完成しました！`); save(); renderHUD(); openFac();});
+  b.querySelectorAll('.row[data-rm]').forEach(r=>r.onclick=()=>{const f=S.fac[+r.dataset.rm]; const sub=r.querySelector('.sub');
+    if(r.dataset.c!=='1'){r.dataset.c='1'; sub.innerHTML='<span class="bad">お金は戻りません。もう一度タップで撤去</span>'; return;}
+    S.fac=S.fac.filter(x=>x!==f); buildBG(); news(`${FAC[f.t].name}を撤去しました`); save(); renderHUD(); openFac();});
 }
 function genScouts(){
   const arr=[]; const y=yearOf(S.day); for(let i=0;i<3;i++){
@@ -841,7 +848,7 @@ function pitchCtx(G,opt){
 }
 function genPitch(G,opt){
   const c=pitchCtx(G,opt||{});
-  const zone=clamp(0.58+(c.pit.ctl*c.pf-50)*0.004-Math.max(0,c.gap)*0.035+(c.pm==='break'?-0.06:0),0.3,0.8);
+  const zone=clamp(0.58+(c.pit.ctl*c.pf-50)*0.004-Math.max(0,c.gap)*0.035+(c.pm==='break'?-0.06:0)+(c.pm==='ctl'?0.08:0),0.3,0.85);
   const inZ=Math.random()<zone; let x,y;
   if(inZ){x=rnd(-0.9,0.9); y=rnd(-0.9,0.9);}
   else if(Math.random()<0.5){x=(Math.random()<0.5?-1:1)*rnd(1.2,1.7); y=rnd(-1.1,1.1);}
@@ -883,7 +890,7 @@ function pitch(G,opt){
     else {
       const hM=st==='power'?0.9:st==='hr'?0.85:st==='contact'||st==='hit'?1.12:1; let hrB=st==='power'?1.7:st==='hr'?2.3:st==='contact'||st==='hit'?0.5:1;
       let mul=q?{ok:0.85,good:1.2,perfect:1.6}[q]:1; if(q==='perfect')hrB*=2.2; else if(q==='good')hrB*=1.3; if(!pl.inZ){mul*=0.6; hrB*=0.5;}
-      const pH=clamp((0.30+(c.meet-c.pp)*0.0025+c.gap*0.03-(c.def.def-50)*0.0012+c.edge)*hM*mul,0.08,0.85);
+      const pH=clamp((0.30+(c.meet-c.pp)*0.0025+c.gap*0.03-(c.def.def-50)*0.0012+c.edge)*hM*mul*(c.pm==='ctl'?0.88:1),0.08,0.85);
       let res;
       if(Math.random()<pH){const hr=clamp((0.025+(c.pow-40)*0.003+Math.max(0,c.gap)*0.012)*hrB,0.01,0.6),tr=clamp(0.02+(b.spd-50)*0.0006,0.005,0.06),db=clamp(0.17+(c.pow-50)*0.002,0.08,0.32),r=Math.random(); res=r<hr?'HR':r<hr+tr?'3B':r<hr+tr+db?'2B':'1B';}
       else res=Math.random()<0.52?'GO':'FO';
@@ -999,15 +1006,33 @@ function matchPrompt(){
   paused=true; const br=ensureBracket(); const L=LV[S.lvl]; const oid=oppId(br); const ot=cupTeams(S.lvl)[oid];
   const ms=teamStr(S.players), os=teamStr(ot.roster);
   const warn=ms<L.req?`<p class="bad">チーム力が推奨に届いていません。かなり手ごわい相手です。</p>`:'';
-  const myP=lineupOf(myTeam()).pitcher;
-  modal(`${L.name}　${roundName(S.lvl,S.round)}`,`<div style="text-align:center;font-size:17px;line-height:1.7;font-weight:800"><span style="color:${S.color}">■</span> ${esc(S.name)}　<span class="note">vs</span>　<span style="color:${ot.pal.c}">■</span> ${esc(ot.name)}</div><p style="text-align:center">チーム力 ${rk(ms)} 対 ${rk(os)}　（推奨${rk(L.req)}以上）</p>${warn}${bracketHTML(br)}<p class="note">先発予定：${esc(myP.name)}　勝てば賞金${L.prize}万円。負けても経験値は同じだけもらえます。</p>`,
-    [{label:'結果だけ見る',sub:true,fn:()=>{closeModal(); playGame(false); return false;}},{label:'試合をする',fn:()=>{closeModal(); playGame(true); return false;}}]);
+  const myL=lineupOf(myTeam()), opL=lineupOf({mine:false,name:ot.name,pal:ot.pal,players:ot.roster});
+  const avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
+  const scout=`<table class="st"><tr><th></th><th>自チーム</th><th>相手</th></tr>
+    <tr><td style="text-align:left">チーム力</td><td>${rk(ms)}</td><td>${rk(os)}</td></tr>
+    <tr><td style="text-align:left">打線（バッティング平均）</td><td>${rk(avg(myL.order.map(p=>p.bat||p.meet)))}</td><td>${rk(avg(opL.order.map(p=>p.bat||p.meet)))}</td></tr>
+    <tr><td style="text-align:left">先発投手（ピッチング）</td><td>${rk(myL.pitcher.pit)}</td><td>${rk(opL.pitcher.pit)}</td></tr>
+    <tr><td style="text-align:left">守備（平均）</td><td>${rk(avg(Object.values(myL.fieldOf).map(p=>p.fld||p.def)))}</td><td>${rk(avg(Object.values(opL.fieldOf).map(p=>p.fld||p.def)))}</td></tr></table>`;
+  S.tac=S.tac||{off:'auto',def:'auto'};
+  const draw=()=>{
+    const b=modal(`${L.name}　${roundName(S.lvl,S.round)}`,`<div style="text-align:center;font-size:17px;line-height:1.7;font-weight:800"><span style="color:${S.color}">■</span> ${esc(S.name)}　<span class="note">vs</span>　<span style="color:${ot.pal.c}">■</span> ${esc(ot.name)}</div><p style="text-align:center" class="note">推奨チーム力 ${rk(L.req)}以上　勝てば賞金${L.prize}万円</p>${scout}${warn}
+      <div class="sec">攻撃の作戦</div><div class="tacg">${Object.entries(OFFT).map(([k,v])=>`<button class="btn ${S.tac.off===k?'on':'sub'}" data-to="${k}">${v.name}<small>${v.desc}</small></button>`).join('')}</div>
+      <div class="sec">守備の作戦（先発：${esc(myL.pitcher.name)}）</div><div class="tacg">${Object.entries(DEFT).map(([k,v])=>`<button class="btn ${S.tac.def===k?'on':'sub'}" data-td="${k}">${v.name}<small>${v.desc}</small></button>`).join('')}</div>
+      ${bracketHTML(br)}<p class="note">負けても経験値は勝ったときと同じだけもらえます。</p>`,
+      [{label:'この作戦で試合開始',fn:()=>{closeModal(); save(); playGame(true); return false;}}]);
+    b.querySelectorAll('[data-to]').forEach(el=>el.onclick=()=>{S.tac.off=el.dataset.to; const sc=$('#ovB').scrollTop; draw(); $('#ovB').scrollTop=sc;});
+    b.querySelectorAll('[data-td]').forEach(el=>el.onclick=()=>{S.tac.def=el.dataset.td; const sc=$('#ovB').scrollTop; draw(); $('#ovB').scrollTop=sc;});
+  };
+  draw();
 }
+const OFFT={auto:{name:'おまかせ',desc:'ふつうに打っていく'},hit:{name:'ヒット狙い',desc:'つないで点を取る。長打は減る'},hr:{name:'ホームラン狙い',desc:'一発に賭ける。三振も増える'},walk:{name:'フォアボール狙い',desc:'よく球を見る。見逃し三振も増える'}};
+const DEFT={auto:{name:'おまかせ',desc:'ふつうに投げる'},full:{name:'力で押す',desc:'球威が上がるが、早く疲れる'},ctl:{name:'打たせて取る',desc:'ストライクを増やし、弱い当たりに'},break:{name:'変化球中心',desc:'三振を狙うが、ボールも増える'}};
+function tacOpt(G){const o={}; const off=G.top?G.away:G.home, d=G.top?G.home:G.away, t=G.tac; if(!t) return o; if(off.mine&&t.off!=='auto') o.strat=t.off; if(d.mine&&t.def!=='auto') o.pitch=t.def; return o;}
 function playGame(watch){
   const br=ensureBracket(); const ot=cupTeams(S.lvl)[oppId(br)]; const opp={mine:false,name:ot.name,pal:ot.pal,players:ot.roster};
   const meHome=Math.random()<0.5;
-  const G=makeGame(meHome?myTeam():opp,meHome?opp:myTeam());
-  if(!watch){while(!G.over) pitch(G); finishGame(G); return;}
+  const G=makeGame(meHome?myTeam():opp,meHome?opp:myTeam()); G.tac={...(S.tac||{off:'auto',def:'auto'})};
+  if(!watch){while(!G.over) pitch(G,tacOpt(G)); finishGame(G); return;}
   openMatch(G);
 }
 function finishGame(G){
@@ -1040,7 +1065,7 @@ function finishGame(G){
     if(!advanceRound(br)){
       titleBonus=L.prize*3; S.money+=titleBonus; dp+=3+S.lvl*1.5; S.titles[S.lvl]++;
       cupMsg=`<p style="text-align:center;font-size:20px;font-weight:800;color:var(--bad)">${L.name} 優勝！！</p><p>優勝賞金 <span class="good">+${titleBonus}万円</span></p>`;
-      if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; ask=true;}
+      if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; ask=true; buildBG(); cupMsg+=`<p class="good">施設のスペースが ${spaceMax()} に広がりました！</p>`;}
       news(`${L.name}で優勝しました！`); S.br=null; S.round=0;
     } else { S.round=br.rounds.length-1; cupMsg=`<p>次は <b>${roundName(S.lvl,S.round)}</b>（来週の土曜）です。</p>`; news(`${L.name}、${roundName(S.lvl,S.round-1)}を突破！`); }
   } else {
@@ -1089,25 +1114,15 @@ function openMatch(G){
   M={G,phase:'idle',ev:null,t:0,dur:0,RD:[],pauseT:600,done:false,shown:false,assigned:false,logs:[],strat:'normal',pitch:'normal',pt:0,T:600,wind:450,tap:null,q:null,hint:true};
   $('#match').hidden=false; renderSB(); $('#mlog').innerHTML=''; mfx.innerHTML='';
   addLog(`プレイボール！ ${G.away.name} 対 ${G.home.name}`);
-  setMS(S.mspeed); updAuto(); updCtl(); fitAll();
+  const t=G.tac||{off:'auto',def:'auto'};
+  $('#mTac').innerHTML=`<div>攻撃の作戦：<b>${OFFT[t.off].name}</b></div><div>守備の作戦：<b>${DEFT[t.def].name}</b></div>`;
+  setMS(S.mspeed); updCtl(); fitAll(); requestAnimationFrame(fitAll);
 }
 function closeMatch(){$('#match').hidden=true; M=null; mfx.innerHTML=''; setOK();}
 function setMS(v){S.mspeed=v; document.querySelectorAll('[data-ms]').forEach(b=>b.classList.toggle('on',+b.dataset.ms===v));}
-function updAuto(){const b=$('#mAuto'); b.textContent=S.auto?'オート':'手動'; b.classList.toggle('on',!S.auto);}
 function offL(){return M.G.top?M.G.away:M.G.home;}
 function defL(){return M.G.top?M.G.home:M.G.away;}
-function updCtl(){
-  if(!M) return; const man=!S.auto&&!M.G.over;
-  const mineOff=offL().mine;
-  $('#mOff').hidden=!(man&&mineOff); $('#mDef').hidden=!(man&&!mineOff);
-  document.querySelectorAll('[data-bt]').forEach(b=>{b.classList.toggle('on',b.dataset.bt===M.sel); b.classList.toggle('off',M.phase!=='choose');});
-  const c=M.G.cnt||{b:0,s:0};
-  const pb=M.G.pa&&M.G.pa.b; const bi=pb&&pb.bat!==undefined?`（打${rank(pb.bat)}）`:'';
-  $('#offLbl').textContent=M.phase==='choose'?`${pb?pb.name:''}${bi}の打席。狙いは？`:(M.paFor&&M.paFor===M.G.pa?`${BTN[M.paStrat]}で打席中（${c.b}ボール${c.s}ストライク）`:'');
-  document.querySelectorAll('[data-pt]').forEach(b=>b.classList.toggle('on',b.dataset.pt===M.pitch));
-  $('#relief').classList.toggle('off',!defL().pen.length);
-  setOK();
-}
+function updCtl(){setOK();}
 function setOK(){
   const b=$('#pOK'); let ready=false, label='決定';
   if(M){ ready=M.phase==='choose'; label=ready?'決定':'―'; }
@@ -1182,20 +1197,7 @@ function matchUpdate(dt){
     const G=M.G;
     if(G.over){M.done=true; renderSB(); updCtl(); banner('試合終了',true); setTimeout(()=>{if(!M)return; const g=M.G; closeMatch(); finishGame(g);},1500);}
     else {
-      const man=!S.auto, mineOff=offL().mine;
-      if(man&&mineOff){
-        G.manualDef=false; startPA(G);
-        if(M.paFor!==G.pa){
-          if(G.pa.pc){addLog(G.pa.pc); G.pa.pc=null;}
-          M.phase='choose'; M.sel=M.sel&&BTN[M.sel]?M.sel:'hit';
-          if(M.hint){M.hint=false; banner('打席の作戦を選ぼう！');}
-          updCtl(); renderSB();
-        } else { const ev=pitch(G,{strat:M.paStrat}); startEv(ev,false); updCtl(); }
-      } else {
-        G.manualDef=man&&!mineOff;
-        const ev=pitch(G,G.manualDef?{pitch:M.pitch}:{});
-        startEv(ev,false); updCtl();
-      }
+      const ev=pitch(G,tacOpt(G)); startEv(ev,false); updCtl();
     }
   }
   for(const r of M.RD){ if(r.wp.length){r.walk+=dt*sp; if(moveTo(r,r.wp[0][0],r.wp[0][1],60*(0.7+(r.p.spd||40)/100)*sp,dt)) r.wp.shift();} else r.walk=0; }
@@ -1259,13 +1261,6 @@ function drawZone(g,pl,k,wind){
 hcv.addEventListener('click',e=>{
   const rc=hcv.getBoundingClientRect(); const x=(e.clientX-rc.left)/rc.width*LW, y=(e.clientY-rc.top)/rc.height*LH;
   const c=Math.floor(x/16), r=Math.floor(y/16);
-  if(buildMode){
-    if(!isLot(c,r)||facAt(c,r)){$('#hintTxt').textContent='そこには建てられません。空き地をタップ'; return;}
-    const cost=facCost(buildMode); if(S.money<cost){$('#hintTxt').textContent='お金が足りません'; return;}
-    S.money-=cost; S.fac.push({t:buildMode,x:c,y:r}); buildBG();
-    hfloat(c*16+8,r*16+2,'完成！','up big'); news(`${FAC[buildMode].name}が完成しました！`);
-    buildMode=null; $('#hint').hidden=true; save(); renderHUD(); return;
-  }
   let best=null,bd=10; for(const p of S.players){const h=HS.get(p.id); if(!h)continue; const d=Math.hypot(h.x-x,h.y-9-y); if(d<bd){bd=d; best=p;}}
   if(best){openPlayer(best.id); return;}
   const f=facAt(c,r);
@@ -1303,8 +1298,6 @@ function padDir(d){
   if(!S) return;
   if(M){
     if(d!=='left'&&d!=='right') return; const dir=d==='left'?-1:1;
-    if(!$('#mOff').hidden){const o=['hit','hr','walk']; M.sel=o[(Math.max(0,o.indexOf(M.sel))+dir+3)%3]; updCtl();}
-    else if(!$('#mDef').hidden){const o=['normal','break','full']; M.pitch=o[(o.indexOf(M.pitch)+dir+3)%3]; updCtl();}
     return;
   }
   if(ov.hidden&&$('#side').hidden){toggleSide(true); return;}
@@ -1328,10 +1321,7 @@ function drawIcons(){
 }
 document.querySelectorAll('[data-ms]').forEach(b=>b.onclick=()=>{setMS(+b.dataset.ms); save();});
 document.querySelectorAll('[data-bt]').forEach(b=>b.onclick=()=>chooseBt(b.dataset.bt));
-document.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{if(!M)return; M.pitch=b.dataset.pt; updCtl();});
-$('#relief').onclick=()=>{if(!M)return; const d=defL(); if(!d.mine||!d.pen.length)return; const t=changePitcher(d); if(t) addLog(t); updCtl();};
-$('#mAuto').onclick=()=>{S.auto=!S.auto; if(M&&S.auto&&M.phase==='choose') M.phase='idle'; updAuto(); updCtl(); save();};
-$('#mSkip').onclick=()=>{if(!M||M.done)return; const G=M.G; while(!G.over) pitch(G); closeMatch(); finishGame(G);};
+$('#mSkip').onclick=()=>{if(!M||M.done)return; const G=M.G; while(!G.over) pitch(G,tacOpt(G)); closeMatch(); finishGame(G);};
 
 /* ---------- layout ---------- */
 function fit(wrap,stage,lw,lh){const W=stage.clientWidth,H=stage.clientHeight; if(!W||!H)return; const s=Math.min(W/lw,(H-6)/lh); wrap.style.width=Math.floor(lw*s)+'px'; wrap.style.height=Math.floor(lh*s)+'px';}
@@ -1344,7 +1334,7 @@ let last=performance.now(), acc=0, started=false;
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
   if(started){
-    if(M){ if(fitN++%30===0) fitAll(); matchUpdate(dt); }
+    if(M){ matchUpdate(dt); }
     else {
       if(!paused&&ov.hidden&&!buildMode&&S.speed>0){acc+=dt*1000; const need=DAY_MS/S.speed; if(acc>=need){acc=0; tick();} $('#hProg').style.width=Math.min(100,acc/need*100)+'%';}
       drawHome(dt);
