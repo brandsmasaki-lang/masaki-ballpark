@@ -277,7 +277,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.14</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.15</div></div>
  </div>
 </div>
 
@@ -328,28 +328,29 @@ const LV=[
   {name:'ワールドカップ',rounds:5,req:80,opp:78,prize:750,inc:7.5,exp:2.2,cost:8},
   {name:'オリンピック',rounds:5,req:80,opp:83,prize:1100,inc:9,exp:2.4,cost:10},
   {name:'WBC',rounds:5,req:90,opp:89,prize:1800,inc:11,exp:2.7,cost:13}];
+/* real place names at home, real national teams abroad (our own team plays as Japan, so Japan never appears as an opponent) */
 const OPP=[
-  ['近所の草野球団','商店街ファイターズ','町内会オールスターズ','大学OBクラブ','日曜ベースボール部'],
-  ['東町クラブ','西町ブレーブス','南区ドルフィンズ','北区タイガース','中央ライオネル'],
-  ['県立工業OB','港湾ガルズ','高原ホークス','川辺カワセミーズ','県庁ナインズ'],
-  ['北海道代表','東北代表','関東代表','関西代表','九州代表','四国代表'],
-  ['韓国代表','台湾代表','中国代表','オーストラリア代表','フィリピン代表'],
-  ['オランダ代表','イタリア代表','イギリス代表','ドイツ代表','スペイン代表'],
-  ['ベネズエラ代表','コロンビア代表','ブラジル代表','ニカラグア代表','パナマ代表'],
-  ['アメリカ代表','カナダ代表','メキシコ代表','キューバ代表','プエルトリコ代表'],
-  ['アメリカ代表','ドミニカ代表','キューバ代表','韓国代表','ベネズエラ代表'],
-  ['アメリカ代表','ドミニカ代表','日本代表','メキシコ代表','台湾代表'],
-  ['アメリカ代表','ドミニカ代表','日本代表','ベネズエラ代表','プエルトリコ代表']];
+  ['大村草野球団','諫早クラブ','佐世保ベースボール部','島原商店街ファイターズ','長崎大学OBクラブ','雲仙サンデーズ'],
+  ['竹松クラブ','松原ブレーブス','三城ドルフィンズ','萱瀬タイガース','鈴田ライオンズ','西大村ナインズ'],
+  ['長崎市選抜','佐世保市選抜','諫早市選抜','島原市選抜','五島市選抜','対馬市選抜'],
+  ['北海道代表','宮城代表','東京代表','愛知代表','大阪代表','福岡代表'],
+  ['韓国代表','台湾代表','中国代表','オーストラリア代表','フィリピン代表','インドネシア代表'],
+  ['オランダ代表','イタリア代表','イギリス代表','ドイツ代表','スペイン代表','フランス代表'],
+  ['ベネズエラ代表','コロンビア代表','ブラジル代表','ニカラグア代表','パナマ代表','アルゼンチン代表'],
+  ['アメリカ代表','カナダ代表','メキシコ代表','キューバ代表','プエルトリコ代表','ドミニカ共和国代表'],
+  ['アメリカ代表','ドミニカ共和国代表','キューバ代表','韓国代表','ベネズエラ代表','オランダ代表'],
+  ['アメリカ代表','ドミニカ共和国代表','韓国代表','メキシコ代表','台湾代表','イスラエル代表'],
+  ['アメリカ代表','ドミニカ共和国代表','ベネズエラ代表','プエルトリコ代表','メキシコ代表','キューバ代表']];
 /* facilities take up space; free space grows as higher tournaments open up. Running needs no facility */
 const FAC={
   pen:{name:'ブルペン',cost:800,size:1,desc:'ピッチングの練習効率が上がる'},
   cage:{name:'バッティング練習場',cost:1000,size:2,desc:'バッティングの練習効率が上がる'},
-  knock:{name:'ノック場',cost:900,size:2,desc:'守備の練習効率が上がる'},
+  knock:{name:'ノック場',cost:600,size:2,desc:'守備の練習効率が上がる'},
   dorm:{name:'選手寮',cost:1500,size:3,desc:'選手の疲れがたまりにくくなる'},
-  board:{name:'広告看板',cost:300,size:1,desc:'広告を出してスポンサー料をもらう'},
+  board:{name:'広告看板',cost:200,size:1,desc:'広告を出してスポンサー料をもらう'},
   stall:{name:'屋台',cost:1200,size:1,desc:'試合の日に、お客さんが食べ物を買ってくれる'},
-  goods:{name:'グッズショップ',cost:3000,size:2,desc:'ファンや観客がグッズを買ってくれる'},
-  stand:{name:'観客席',cost:3000,size:3,desc:'試合に入れるお客さんが2000人増える'}};
+  goods:{name:'グッズショップ',cost:5000,size:2,req:8,desc:'ファンや観客がグッズを買ってくれる'},
+  stand:{name:'観客席',cost:5000,size:3,req:8,desc:'試合に入れるお客さんが2000人増える'}};
 const SPACE=[4,6,8,11,14,17,20,24,28,33,40];
 const MENU={
   self:{name:'自主練',base:3,cost:0,fat:1,desc:'お金はかからないが、伸びは少なめ'},
@@ -515,7 +516,7 @@ function mkPlayer(pos,base){
 function sync(p){const b=p.bias; p.meet=clamp(p.bat+b.m,1,99); p.pow=clamp(p.bat+b.p,1,99); p.spd=clamp(p.fld+b.s,1,99); p.def=p.fld; p.fast=clamp(p.pit+b.v,1,99); p.velo=clamp(Math.round(118+p.fast*0.47),110,165); p.ctl=clamp(p.pit+b.c,1,99); p.sta=clamp(p.pit+b.st,1,99); p.brk=clamp(p.pit+b.b,1,99);}
 function typeOf(p){const b=p.bias; if(p.pos==='投') return b.v>=6&&b.v>=b.b?'速球派':b.b>=6?'変化球派':b.c>=6?'制球派':b.st>=5?'スタミナ型':'バランス型'; return b.p-b.m>=7?'パワー型':b.m-b.p>=7?'アベレージ型':b.s>=7?'俊足型':'バランス型';}
 function subStats(p){return p.pos==='投'?[['直球',p.fast],['変化球',p.brk],['制球',p.ctl]]:[['ミート',p.meet],['パワー',p.pow],['走力',p.spd]];}
-function ovr(p){return p.pos==='投'?Math.round(p.pit*0.8+p.fld*0.2):Math.round(p.bat*0.6+p.fld*0.4);}
+function ovr(p){return p.pos==='投'?Math.round(p.pit*0.75+p.fld*0.25):Math.round(p.bat*0.5+p.fld*0.5);}
 function salary(p){const o=ovr(p); return Math.round(2+o*o/600);}
 /* every roster has a few standouts: a cleanup hitter, an ace with one strong pitch, a defensive catcher, a fast leadoff man */
 function mkRoster(base){
@@ -539,7 +540,7 @@ function newSave(name,color){
   S.news='球団が誕生！ まずは屋台を建ててお金をかせごう';
 }
 function cnt(t){return S.fac.filter(f=>f.t===t).length;}
-function facCost(t){return Math.round(FAC[t].cost*(1+0.8*cnt(t)));}
+function facCost(t){return Math.round(FAC[t].cost*(1+(t==='board'?0.25:0.8)*cnt(t)));}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(KEY); return s?JSON.parse(s):null;}catch(e){return null;}}
 function loadLegacy(){try{const a=JSON.parse(localStorage.getItem(LEGACY_KEY)||'[]'); return Array.isArray(a)?a:[];}catch(e){return [];}}
@@ -560,7 +561,6 @@ function nextCupStr(d){let x=d+1; while(!isCupMonth(x)) x++; return `${monthOf(x
 function dateStr(d){return `${yearOf(d)}年目 ${monthOf(d)}月${Math.floor((doyOf(d)%28)/7)+1}週 ${WD[d%7]}曜`;}
 function roundName(l,r){return ['1回戦','準決勝','決勝'][r]||'';}
 LV.forEach(l=>l.rounds=3);
-[['公園キャッチボール会'],['市役所スワローズ'],['県北ブルズ'],[],['インドネシア代表'],['フランス代表'],['アルゼンチン代表'],['ジャマイカ代表'],['オランダ代表'],['キューバ代表'],['韓国代表']].forEach((a,i)=>OPP[i].push(...a));
 
 /* ---------- home scene ---------- */
 const hcv=$('#hcv'),hctx=hcv.getContext('2d'); hctx.imageSmoothingEnabled=false; hctx.setTransform(2,0,0,2,0,0);
@@ -660,7 +660,7 @@ function renderHUD(){
 function news(t){S.news=t; $('#ticker').textContent=t;}
 
 /* ---------- training & economy ---------- */
-function facBonus(k){const n=k==='bat'?cnt('cage'):k==='pit'?cnt('pen'):cnt('knock'); return Math.min(n,3)*0.3;}
+function facBonus(k){const n=k==='bat'?cnt('cage'):k==='pit'?cnt('pen'):cnt('knock'); return Math.min(n,3)*(k==='fld'?0.6:0.3);}
 function needExp(p,k){return 20+p[k]*4.6;}
 /* progress toward the next rank (F→E at 40, then every 10 points, S tops out at 99) */
 function nextRankAt(v){return v<40?40:v>=90?99:Math.floor(v/10)*10+10;}
@@ -677,7 +677,7 @@ function trainDay(){
   S.players.forEach(p=>{
     const pk=M.base?pickOf(p):null;
     if(pk){
-      p.fat=clamp(p.fat+M.fat-cnt('dorm')*1.5,0,100);
+      p.fat=clamp(p.fat+M.fat-Math.min(2,cnt('dorm'))*2.5,0,100);
       const condF=[0.7,0.85,1,1.15,1.3][p.cond-1];
       addExp(p,pk.ab,M.base*2.3*LV[S.lvl].exp*p.tal*condF*(1-p.fat/160)*(p.age>=32?0.7:1)*(1+facBonus(pk.ab))*rnd(0.8,1.2));
     } else p.fat=clamp(p.fat-(M.base?4:-M.fat)-cnt('dorm')*2,0,100);
@@ -693,9 +693,9 @@ function gameIncome(){
   const att=Math.round(Math.min(cap,50+S.pop*0.8*rnd(0.85,1.1)));
   const ticket=att*0.15*Math.sqrt(inc);
   /* stalls and goods grow with the square root of the level, and extra goods shops share the same fans (each shop adds half as much as the one before), so money can't snowball */
-  const si=Math.sqrt(inc), gs=2*(1-Math.pow(0.5,cnt('goods')));
+  const si=Math.sqrt(inc);
   const stall=cnt('stall')*100*si*Math.min(1,att/1000);
-  const goods=cnt('goods')?(S.pop*0.01+att*0.1)*si*gs:0;
+  const goods=cnt('goods')*(S.pop*0.01+att*0.05)*si;
   return {att,total:Math.round(ticket+stall+goods)};
 }
 const EVENTS=[
@@ -831,11 +831,12 @@ function openPlayer(id){
 function openFac(){
   const inc=LV[S.lvl].inc, cap=spaceMax(), used=spaceUsed(), free=cap-used;
   const nextCap=SPACE[S.unlocked+1];
-  const b=modal('施設',`<p>空きスペース <b style="font-size:18px">${free}</b> / ${cap}${nextCap?`<br><span class="note">次の大会に進むと ${nextCap} まで広がります</span>`:''}</p><div class="sec">建てる</div>`+Object.entries(FAC).map(([k,v])=>`<div class="row" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.desc}</div></div><div style="text-align:right;white-space:nowrap"><b>${facCost(k)}万</b><br><span class="note">スペース${v.size}</span></div></div>`).join('')+
+  const b=modal('施設',`<p>空きスペース <b style="font-size:18px">${free}</b> / ${cap}${nextCap?`<br><span class="note">次の大会に進むと ${nextCap} まで広がります</span>`:''}</p><div class="sec">建てる</div>`+Object.entries(FAC).map(([k,v])=>`<div class="row${v.req>S.unlocked?' lock':''}" data-k="${k}"><canvas data-fac="${k}" width="16" height="16" style="width:32px;height:32px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm">${v.name} <span class="note">×${cnt(k)}</span></div><div class="sub">${v.req>S.unlocked?`${LV[v.req].name}に進むと建てられます`:v.desc}</div></div><div style="text-align:right;white-space:nowrap"><b>${facCost(k)}万</b><br><span class="note">スペース${v.size}</span></div></div>`).join('')+
     (S.fac.length?`<div class="sec">建てた施設（タップで撤去）</div>`+S.fac.map((f,i)=>`<div class="row" data-rm="${i}"><canvas data-fac="${f.t}" width="16" height="16" style="width:24px;height:24px;image-rendering:pixelated;flex:none"></canvas><div class="grow"><div class="nm" style="font-size:14px">${FAC[f.t].name}</div><div class="sub">スペース${FAC[f.t].size}</div></div></div>`).join(''):'')+
     `<p class="note">走り込みには施設はいりません。いまの大会では施設収入が×${inc}になります。</p>`);
   b.querySelectorAll('canvas[data-fac]').forEach(c=>drawFac(c.getContext('2d'),c.dataset.fac,0,0));
   b.querySelectorAll('.row[data-k]').forEach(r=>r.onclick=()=>{const k=r.dataset.k, sub=r.querySelector('.sub');
+    if(FAC[k].req>S.unlocked) return;
     if(FAC[k].size>free){sub.innerHTML=`<span class="bad">スペースが足りません（あと${FAC[k].size-free}必要）</span>`; return;}
     if(S.money<facCost(k)){sub.innerHTML='<span class="bad">お金が足りません</span>'; return;}
     S.money-=facCost(k); S.fac.push({t:k}); buildBG(); const f=S.fac[S.fac.length-1]; hfloat(f.x*16+8,f.y*16+2,'完成！','up big');
@@ -976,7 +977,7 @@ function pitch(G,opt){
     else {
       const hM=st==='power'?0.9:st==='hr'?0.85:st==='contact'||st==='hit'?1.12:1; let hrB=st==='power'?1.7:st==='hr'?2.3:st==='contact'||st==='hit'?0.5:1;
       let mul=q?{ok:0.85,good:1.2,perfect:1.6}[q]:1; if(q==='perfect')hrB*=2.2; else if(q==='good')hrB*=1.3; if(!pl.inZ){mul*=0.6; hrB*=0.5;}
-      const pH=clamp((0.30+(c.meet-c.pp)*0.0025+c.gap*0.03-(c.def.def-50)*0.0012+c.edge)*hM*mul*(c.pm==='ctl'?0.88:1),0.08,0.85);
+      const pH=clamp((0.30+(c.meet-c.pp)*0.0025+c.gap*0.03-(c.def.def-50)*0.0045+c.edge)*hM*mul*(c.pm==='ctl'?0.88:1),0.08,0.85);
       let res;
       if(Math.random()<pH){const hr=clamp((0.025+(c.pow-40)*0.003+Math.max(0,c.gap)*0.012)*hrB,0.01,0.6),tr=clamp(0.02+(b.spd-50)*0.0006,0.005,0.06),db=clamp(0.17+(c.pow-50)*0.002,0.08,0.32),r=Math.random(); res=r<hr?'HR':r<hr+tr?'3B':r<hr+tr+db?'2B':'1B';}
       else res=Math.random()<0.52?'GO':'FO';
@@ -1052,7 +1053,7 @@ function cupTeams(l){
     const pals=OPP_PALS.slice().sort(()=>Math.random()-0.5);
     const sp=SPREAD.slice().sort(()=>Math.random()-0.5);
     S.cups[l]=names.map((n,i)=>({name:n,pal:pals[i],roster:mkRoster(LV[l].opp+sp[i])}));
-  }
+  } else if(S.cups[l].some(t=>!OPP[l].includes(t.name))){const free=OPP[l].filter(n=>!S.cups[l].some(t=>t.name===n)); S.cups[l].forEach(t=>{if(!OPP[l].includes(t.name)) t.name=free.shift()||t.name;});}
   return S.cups[l];
 }
 function teamKey(id){return id===-1?{name:S.name,pal:myPal(),str:teamStr(S.players)}:(()=>{const t=cupTeams(S.br?S.br.lvl:S.lvl)[id]; return {name:t.name,pal:t.pal,str:teamStr(t.roster)};})();}
@@ -1076,7 +1077,7 @@ function oppId(br){const m=br.rounds[br.rounds.length-1][myMatchIdx(br)]; return
 function bracketHTML(br){
   if(!br) return '';
   const RN=['1回戦','準決勝','決勝'];
-  const nm=id=>{if(id===null) return '<span class="note">（不戦勝）</span>'; if(id===undefined) return '<span class="note">―</span>'; const k=teamKey(id); return `<span style="display:inline-block;width:8px;height:8px;background:${k.pal.c};border:1px solid #000;margin-right:3px"></span>${id===-1?'<b>'+esc(S.name.slice(0,6))+'</b>':esc(k.name.slice(0,6))}`;};
+  const nm=id=>{if(id===null) return '<span class="note">（不戦勝）</span>'; if(id===undefined) return '<span class="note">―</span>'; const k=teamKey(id); return `<span style="display:inline-block;width:8px;height:8px;background:${k.pal.c};border:1px solid #000;margin-right:3px"></span>${id===-1?'<b>'+esc(S.name.slice(0,6))+'</b>':esc(k.name.replace(/代表$/,'').slice(0,7))}`;};
   let h='<div class="brk">';
   for(let r=0;r<3;r++){
     h+=`<div class="brc"><div class="brh">${RN[r]}</div>`;
