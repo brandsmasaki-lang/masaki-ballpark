@@ -277,7 +277,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.13</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">MASAKI BALLPARK<br>ver 1.14</div></div>
  </div>
 </div>
 
@@ -306,7 +306,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const KEY='masaki-ballpark-save-v3', BEST_KEY='masaki-ballpark-best', LEGACY_KEY='masaki-ballpark-legacy';
-const LW=176,LH=192,MW=176,MH=200,DAY_MS=1500,MAX_ROSTER=16,YEAR_DAYS=336,TOTAL_YEARS=12;
+const LW=176,LH=192,MW=176,MH=200,DAY_MS=1000,MAX_ROSTER=16,YEAR_DAYS=336,TOTAL_YEARS=12;
 const WD='月火水木金土日';
 const SURN='佐藤 鈴木 高橋 田中 伊藤 渡辺 山本 中村 小林 加藤 吉田 山田 佐々木 山口 松本 井上 木村 林 清水 山崎 森 池田 橋本 阿部 石川 前田 藤田 小川 岡田 後藤 長谷川 村上 近藤 石井 坂本 遠藤 青木 藤井 西村 福田 太田 三浦 岡本 松田 中川 原田 小野 竹内 金子 和田 中山 石田 上田 森田 柴田 酒井 工藤 横山 宮崎 宮本 内田 高木 安藤 島田 谷口 大野 丸山 今井 河野 藤原 武田 村田 上野 杉山 増田 平野 大塚 千葉 久保 松井 小島 岩崎 桜井 野口 松尾 野村 木下 菊地 佐野 大西 杉本 新井 浜田 菅原 市川 水野 小松 高野 南 北村 東 西田'.split(' ');
 const POS=['捕','一','二','三','遊','左','中','右'];
@@ -554,6 +554,9 @@ function condHTML(p){const c=COND[p.cond-1]; return `<b style="color:${c[1]}">${
 function fatHTML(p){const col=p.fat>70?'#c8402f':p.fat>40?'#e0a020':'#2e8b3e'; return `<span class="fat"><i style="width:${Math.round(p.fat)}%;background:${col}"></i></span>`;}
 const yearOf=d=>Math.floor(d/YEAR_DAYS)+1, doyOf=d=>d%YEAR_DAYS, weekIdx=d=>Math.floor(d/7);
 function monthOf(d){return (Math.floor(doyOf(d)/28)+3)%12+1;}
+/* tournaments are played in Jan/Apr/Jul/Oct (one game every Saturday); the other months start with one training command */
+const CUP_MONTHS=[1,4,7,10]; const isCupMonth=d=>CUP_MONTHS.includes(monthOf(d)); const monthIdx=d=>Math.floor(d/28);
+function nextCupStr(d){let x=d+1; while(!isCupMonth(x)) x++; return `${monthOf(x)}月`;}
 function dateStr(d){return `${yearOf(d)}年目 ${monthOf(d)}月${Math.floor((doyOf(d)%28)/7)+1}週 ${WD[d%7]}曜`;}
 function roundName(l,r){return ['1回戦','準決勝','決勝'][r]||'';}
 LV.forEach(l=>l.rounds=3);
@@ -650,7 +653,7 @@ function renderHUD(){
   $('#hPop').textContent=Math.floor(S.pop).toLocaleString();
   const L=LV[S.lvl];
   $('#hCup').innerHTML=`<b>${L.name}</b> ${L.rounds>1?roundName(S.lvl,S.round):''} 推奨${rk(L.req)} 自${rk(teamStr(S.players))}`;
-  $('#hCmd').innerHTML=`今週 <b>${MENU[S.cmd.menu].name}</b>${MENU[S.cmd.menu].base&&S.cmd.picks?'：'+S.cmd.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return p?esc(p.name)+ABS[x.ab]:'';}).join(' '):''}`;
+  $('#hCmd').innerHTML=S&&isCupMonth(S.day)?`<b>大会月</b>：毎週土曜に試合`:`今月 <b>${MENU[S.cmd.menu].name}</b>${MENU[S.cmd.menu].base&&S.cmd.picks?'：'+S.cmd.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return p?esc(p.name)+ABS[x.ab]:'';}).join(' '):''}`;
   $('#ticker').textContent=S.news;
   $('#pSpeed').textContent={1:'▶ ふつう',2:'▶▶ はやい',4:'▶▶▶ 超速',0:'‖ 停止中'}[S.speed];
 }
@@ -688,9 +691,11 @@ function economy(){
 function gameIncome(){
   const inc=LV[S.lvl].inc, cap=1000+cnt('stand')*2000;
   const att=Math.round(Math.min(cap,50+S.pop*0.8*rnd(0.85,1.1)));
-  const ticket=att*0.15*inc;
-  const stall=cnt('stall')*100*inc*Math.min(1,att/1000);
-  const goods=cnt('goods')?(cnt('goods')*S.pop*0.1+att*0.1)*inc:0;
+  const ticket=att*0.15*Math.sqrt(inc);
+  /* stalls and goods grow with the square root of the level, and extra goods shops share the same fans (each shop adds half as much as the one before), so money can't snowball */
+  const si=Math.sqrt(inc), gs=2*(1-Math.pow(0.5,cnt('goods')));
+  const stall=cnt('stall')*100*si*Math.min(1,att/1000);
+  const goods=cnt('goods')?(S.pop*0.01+att*0.1)*si*gs:0;
   return {att,total:Math.round(ticket+stall+goods)};
 }
 const EVENTS=[
@@ -702,9 +707,10 @@ const EVENTS=[
 function tick(){
   if(S.day>=TOTAL_YEARS*YEAR_DAYS){ending(); return;}
   const wd=S.day%7;
-  if(wd===0&&S.cmdWeek!==weekIdx(S.day)){commandPrompt(); return;}
-  if(wd===5&&S.lastPlayed!==S.day){matchPrompt(); return;}
-  if(wd<5) trainDay();
+  const cup=isCupMonth(S.day);
+  if(!cup&&wd===0&&doyOf(S.day)%28<7&&S.cmdMonth!==monthIdx(S.day)){commandPrompt(); return;}
+  if(cup&&wd===5&&S.lastPlayed!==S.day){matchPrompt(); return;}
+  if(wd<5){ if(cup) S.players.forEach(p=>p.fat=clamp(p.fat-3-cnt('dorm')*2,0,100)); else trainDay(); }
   economy();
   S.day++;
   S.maxMoney=Math.max(S.maxMoney,S.money);
@@ -717,7 +723,7 @@ function weekly(){
   S.pop+=Math.round(teamStr(S.players)*0.1*(1+S.lvl*0.3));
   S.players.forEach(p=>{p.cond=clamp(p.cond+ri(-1,1)+(p.cond>3&&Math.random()<0.3?-1:0)+(p.cond<3&&Math.random()<0.3?1:0),1,5);});
   const avg=S.players.reduce((s,p)=>s+p.fat,0)/S.players.length;
-  if(avg>60) news('選手たちがかなり疲れています。今週は「休養」がおすすめ');
+  if(avg>60) news('選手たちがかなり疲れています。次の練習の月は「休養」がおすすめ');
   else if(Math.random()<0.4){const t=pick(EVENTS)(); if(t) news(t);}
 }
 function monthly(){
@@ -752,7 +758,7 @@ function picsIn(root,list,pal){root.querySelectorAll('canvas[data-pid]').forEach
 
 /* ---------- weekly command ---------- */
 let paused=false;
-function menuCost(k){return Math.round(MENU[k].cost*LV[S.lvl].cost);}
+function menuCost(k){return Math.round(MENU[k].cost*4*LV[S.lvl].cost);} /* one command now covers a whole month (4 weeks) */
 function statLine(p){const t=p.st||{};
   if(p.pos==='投'){const era=t.po?(t.er*27/t.po).toFixed(2):'-.--'; return `防御率 <b>${era}</b>　球速 <b>${p.velo}</b>km`;}
   const avg=t.ab?(t.h/t.ab).toFixed(3).replace(/^0/,''):'.---'; return `打率 <b>${avg}</b>　HR <b>${t.hr||0}</b>`;}
@@ -766,17 +772,17 @@ function commandPrompt(){
     const trains=MENU[sel.menu].base>0;
     const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
     const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id), tr=tired(p); return `<div class="prow${pk?' picked':''}${tr?' tired':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)}${p.legacy?' <span class="rk" style="background:#e0457b">引継</span>':''}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}${tr?' <b class="bad">疲れすぎ</b>':''}</div><div class="sub st">${statLine(p)}</div></div>`+AKEYS.map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}"${tr?' disabled':''} data-p="${p.id}" data-ab="${k}" title="次のランクまで ${Math.round(rankProg(p,k)*100)}%">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
-    const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今週のコマンド`,
+    const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今月のコマンド`,
       `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=c>S.money; return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
       `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${menuCost(sel.menu)>S.money?'　<span class="bad">お金が足りません</span>':''}</p>`+
-      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><button class="btn sm sub" id="pReset" style="margin-left:auto;font-size:13px;padding:3px 10px"${sel.picks.length?'':' disabled'}>リセット</button></div><div class="xnote">打・守・投のどれかをタップ（疲れ90%以上の選手は休ませます）</div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今週は練習しないので、全員が休んで疲れを取ります。</p>'),
+      (trains?`<div class="pickhd">練習する3人を選ぶ <b>${sel.picks.length}/3</b><button class="btn sm sub" id="pReset" style="margin-left:auto;font-size:13px;padding:3px 10px"${sel.picks.length?'':' disabled'}>リセット</button></div><div class="xnote">打・守・投のどれかをタップ（疲れ90%以上の選手は休ませます）</div><div class="xnote">ボタンの下の青いバー＝次のランクまでの経験値</div>${msg?`<p class="bad" style="margin:2px 0">${msg}</p>`:''}<div class="plist">${rows}</div>`:'<p class="note">今月は練習しないので、全員が休んで疲れを取ります。</p>'),
       [{label:trains&&sel.picks.length<3?`あと${3-sel.picks.length}人選んでください`:`これで決定${menuCost(sel.menu)?`（-${menuCost(sel.menu)}万円）`:''}`,fn:()=>{
         const c=menuCost(sel.menu); if(c>S.money) return false;
         if(MENU[sel.menu].base>0&&sel.picks.length<3){msg='練習する選手を3人選んでください'; draw(); return false;}
-        S.money-=c; S.cmd={menu:sel.menu,picks:sel.picks.slice()}; S.cmdWeek=weekIdx(S.day); HS.clear();
-        if(sel.menu==='sales'){const g=salesGain(); S.money+=g; S.pop+=10; news(`営業回りでスポンサー料 ${g}万円をもらいました！`);}
-        else if(MENU[sel.menu].base>0) news(`今週は${MENU[sel.menu].name}：`+sel.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return `${p.name}（${ABS[x.ab]}）`;}).join('・'));
-        else news(`今週は「${MENU[sel.menu].name}」でいきます`);
+        S.money-=c; S.cmd={menu:sel.menu,picks:sel.picks.slice()}; S.cmdWeek=weekIdx(S.day); S.cmdMonth=monthIdx(S.day); HS.clear();
+        if(sel.menu==='sales'){const g=salesGain(); S.money+=g; S.pop+=40; news(`営業回りでスポンサー料 ${g}万円をもらいました！`);}
+        else if(MENU[sel.menu].base>0) news(`今月は${MENU[sel.menu].name}：`+sel.picks.map(x=>{const p=S.players.find(y=>y.id===x.id); return `${p.name}（${ABS[x.ab]}）`;}).join('・'));
+        else news(`今月は「${MENU[sel.menu].name}」でいきます`);
         closeModal(); paused=false; save(); renderHUD(); return false;}}]);
     picsIn(b,list);
     b.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{if(menuCost(el.dataset.m)>S.money)return; sel.menu=el.dataset.m; msg=''; draw();});
@@ -792,7 +798,7 @@ function commandPrompt(){
   };
   draw();
 }
-function salesGain(){return Math.round((20+S.pop*0.03)*LV[S.lvl].inc);}
+function salesGain(){return Math.round((20+S.pop*0.03)*4*LV[S.lvl].inc);}
 
 /* ---------- panels ---------- */
 function keyStats(p){const s=subStats(p).filter(([n,v])=>rank(v)!==rank(p.pos==='投'?p.pit:p.bat)&&v>=40).map(([n,v])=>`${n}${rank(v)}`); return AKEYS.map(k=>`${ABS[k]}${rk(p[k])}`).join(' ')+` <span class="note">${p.star?esc(p.star)+'・':''}${typeOf(p)}${s.length?'（'+s.join(' ')+'）':''}</span>`;}
@@ -859,7 +865,7 @@ function openScout(){
 function cupInfo(i){const L=LV[i]; return `推奨${rk(L.req)}以上・${L.rounds}試合・勝利賞金${L.prize}万・経験×${L.exp}・施設収入×${L.inc}`;}
 function openCup(){
   const str=teamStr(S.players);
-  const b=modal('大会',`<p>自チーム力 ${rk(str)}　いま挑戦中：<b>${LV[S.lvl].name}</b> ${S.br?roundName(S.lvl,S.round):''}</p>${S.br?bracketHTML(S.br):`<p class="note">各大会には6チームが出場し、あなたのチームと合わせて7チームのトーナメントで戦います（1チームは1回戦がシード）。毎週土曜に1試合、3連勝で優勝です。</p>`}`+LV.map((L,i)=>{const lock=i>S.unlocked; return `<div class="row${lock?' lock':''}${i===S.lvl?' cur':''}" data-i="${i}"><div class="grow"><div class="nm">${lock?'？？？':L.name} ${S.titles[i]?'<span class="note">優勝'+S.titles[i]+'回</span>':''}</div><div class="sub">${lock?'ひとつ前の大会で優勝すると挑戦できます':cupInfo(i)}</div></div></div>`;}).join('')+`<p class="note">大会の途中では切りかえられません。負けても勝ったときと同じ経験値がもらえます。</p>`);
+  const b=modal('大会',`<p>自チーム力 ${rk(str)}　いま挑戦中：<b>${LV[S.lvl].name}</b> ${S.br?roundName(S.lvl,S.round):''}</p>${S.br?bracketHTML(S.br):`<p class="note">各大会には6チームが出場し、あなたのチームと合わせて7チームのトーナメントで戦います（1チームは1回戦がシード）。大会は1月・4月・7月・10月。その月の毎週土曜に1試合、3連勝で優勝です。</p>`}`+LV.map((L,i)=>{const lock=i>S.unlocked; return `<div class="row${lock?' lock':''}${i===S.lvl?' cur':''}" data-i="${i}"><div class="grow"><div class="nm">${lock?'？？？':L.name} ${S.titles[i]?'<span class="note">優勝'+S.titles[i]+'回</span>':''}</div><div class="sub">${lock?'ひとつ前の大会で優勝すると挑戦できます':cupInfo(i)}</div></div></div>`;}).join('')+`<p class="note">大会の途中では切りかえられません。負けても勝ったときと同じ経験値がもらえます。</p>`);
   b.querySelectorAll('.row').forEach(r=>r.onclick=()=>{const i=+r.dataset.i; if(i>S.unlocked||i===S.lvl) return; if(S.br&&S.br.res[0].length){r.querySelector('.sub').innerHTML='<span class="bad">いまの大会が終わってから切りかえられます</span>'; return;} S.lvl=i; S.br=null; S.round=0; news(`挑戦する大会を「${LV[i].name}」にしました`); save(); renderHUD(); openCup();});
 }
 function recordsHTML(){
@@ -1125,7 +1131,7 @@ function finishGame(G){
   if(res==='D'){lottery=true; res=Math.random()<0.5?'W':'L';}
   S.rec[res==='W'?'w':res==='L'?'l':'d']++;
   // experience: same for win or loss
-  const expAmt=Math.round(35*L.exp);
+  const expAmt=Math.round(105*L.exp); /* 3x of 1.12 (24x reached all-S by year 2 in a bot run) */
   const played=new Set([...my.order,...my.used]); const ups=[];
   S.players.forEach(p=>{const amt=played.has(p)?expAmt:Math.round(expAmt*0.4); const ks=p.pos==='投'?['pit','fld']:['bat','fld']; ks.forEach(k=>{const r0=rank(p[k]); addExp(p,k,amt*rnd(0.8,1.2),true); if(rank(p[k])!==r0) ups.push(`${esc(p.name)}の${ABIL[k]}が<b>${rank(p[k])}</b>に！`);});});
   // money
@@ -1145,16 +1151,16 @@ function finishGame(G){
   const shown=br;
   if(res==='W'){
     if(!advanceRound(br)){
-      titleBonus=L.prize*3; S.money+=titleBonus; dp+=60*(S.lvl+1); S.titles[S.lvl]++;
+      titleBonus=L.prize*2; S.money+=titleBonus; dp+=60*(S.lvl+1); S.titles[S.lvl]++;
       cupMsg=`<p style="text-align:center;font-size:20px;font-weight:800;color:var(--bad)">${L.name} 優勝！！</p><p>優勝賞金 <span class="good">+${titleBonus}万円</span></p>`;
       if(S.lvl===S.unlocked&&S.unlocked<LV.length-1){S.unlocked++; dp+=100*S.unlocked; buildBG(); cupMsg+=`<p class="good">施設のスペースが ${spaceMax()} に広がりました！</p>`;}
       if(S.lvl<S.unlocked) ask=true; // offer the next tournament after every title, not only the first one
       news(`${L.name}で優勝しました！`); S.br=null; S.round=0;
-    } else { S.round=br.rounds.length-1; cupMsg=`<p>次は <b>${roundName(S.lvl,S.round)}</b>（来週の土曜）です。</p>`; news(`${L.name}、${roundName(S.lvl,S.round-1)}を突破！`); }
+    } else { S.round=br.rounds.length-1; cupMsg=`<p>次は <b>${roundName(S.lvl,S.round)}</b>（${isCupMonth(S.day+7)?'来週の土曜':nextCupStr(S.day)+'の大会月'}）です。</p>`; news(`${L.name}、${roundName(S.lvl,S.round-1)}を突破！`); }
   } else {
     br.out=true;
     while(advanceRound(br)){const rr=br.rounds.length-1; br.rounds[rr].forEach((m,i)=>br.res[rr][i]=simPair(m[0],m[1]));}
-    cupMsg=`<p>${lottery?'延長でも決着がつかず、抽選で敗退…':'敗退…'} 優勝は <b>${esc(teamKey(br.champ).name)}</b>。来週から新しい大会に挑戦しよう。経験はしっかり積めました。</p>`;
+    cupMsg=`<p>${lottery?'延長でも決着がつかず、抽選で敗退…':'敗退…'} 優勝は <b>${esc(teamKey(br.champ).name)}</b>。${isCupMonth(S.day+7)?'来週':nextCupStr(S.day)}から新しい大会に挑戦しよう。経験はしっかり積めました。</p>`;
     news(`${L.name}は${roundName(S.lvl,r)}で敗退。経験値はしっかりもらえた`); S.br=null; S.round=0;
   }
   if(lottery&&res==='W') cupMsg='<p>延長でも決着がつかず、抽選で勝ち上がり！</p>'+cupMsg;
