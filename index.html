@@ -145,6 +145,7 @@ div#title{align-items:flex-start;padding-top:max(14px,env(safe-area-inset-top,0p
 @keyframes drift{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
 #title .tsub{background:rgba(255,255,255,.9);border:3px solid var(--win-line);border-radius:10px;padding:6px 12px;color:var(--win-ink);font-weight:700}
 #title .tbtns .btn,#title #tNew{font-size:18px;padding:11px}
+#title .tsum{display:block;font-size:13px;font-weight:600;line-height:1.5;margin-top:4px}
 /* in-game pop-up confirm (sits on top of any window) */
 #cfm{position:fixed;inset:0;z-index:70;background:rgba(10,14,30,.5);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
 .cfbox{background:var(--win);border:3px solid var(--win-line);border-radius:12px;width:100%;max-width:360px;box-shadow:0 6px 0 rgba(0,0,0,.25);overflow:hidden;animation:cfIn .16s ease-out}
@@ -302,6 +303,7 @@ body{background:#15171c}
         <button class="si" data-go="fac"><canvas data-ic="fac" width="18" height="18"></canvas><span>施設</span></button>
         <button class="si" data-go="scout"><canvas data-ic="scout" width="18" height="18"></canvas><span>スカウト</span></button>
         <button class="si" data-go="rec"><canvas data-ic="rec" width="18" height="18"></canvas><span>記録</span></button>
+        <button class="si" data-go="save"><canvas data-ic="save" width="18" height="18"></canvas><span>セーブ</span></button>
       </nav>
       <div class="hint" id="hint" hidden><span id="hintTxt"></span><button class="btn sm sub" id="hintX">やめる</button></div>
     </div>
@@ -331,7 +333,7 @@ body{background:#15171c}
      <button class="d left" data-d="left" aria-label="左"></button><button class="d right" data-d="right" aria-label="右"></button>
      <button class="dc" id="pOK" aria-label="決定">決定</button>
    </div>
-   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">草野球ドリーム<br>ver 1.25</div></div>
+   <div class="pr"><button class="pbtn" id="pBack">戻る</button><div class="clock" id="clock">00:00</div><div class="brand">草野球ドリーム<br>ver 1.26</div></div>
  </div>
 </div>
 
@@ -611,7 +613,11 @@ function newSave(name,color){
 }
 function cnt(t){return S.fac.filter(f=>f.t===t).length;}
 function facCost(t){return Math.round(FAC[t].cost*(1+(t==='board'?0.25:0.8)*cnt(t)));}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function save(){try{S.savedAt=Date.now(); localStorage.setItem(KEY,JSON.stringify(S)); return true;}catch(e){return false;}}
+/* one-line summary of a save, shown on the title's つづきから and after pressing セーブ */
+function saveSummary(o){if(!o) return ''; const d=o.day||0; const t=o.savedAt?new Date(o.savedAt):null;
+  return `<b>${esc(o.name||'')}</b>　${yearOf(d)}年目 ${monthOf(d)}月${Math.floor((doyOf(d)%28)/7)+1}週<br>所持金 <b>${Math.floor(o.money||0).toLocaleString()}万円</b>　挑戦中：${LV[o.lvl||0].name}${t?`<br><span style="font-size:12px;opacity:.75">最後のセーブ ${t.getMonth()+1}/${t.getDate()} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</span>`:''}`;}
+function doSave(){const ok=save(); popup(ok?'セーブしました':'セーブできませんでした',ok?`<p>${saveSummary(S)}</p><p class="note">日が進むたびにも自動でセーブしています。</p>`:'<p class="bad">この端末では保存ができないようです（プライベートモードなど）。</p>',[{label:'OK'}]);}
 function loadSave(){try{const s=localStorage.getItem(KEY); return s?JSON.parse(s):null;}catch(e){return null;}}
 function loadLegacy(){try{const a=JSON.parse(localStorage.getItem(LEGACY_KEY)||'[]'); return Array.isArray(a)?a:[];}catch(e){return [];}}
 function loadBest(){try{return JSON.parse(localStorage.getItem(BEST_KEY)||'null');}catch(e){return null;}}
@@ -1405,9 +1411,20 @@ function renderSB(){
 }
 const SHORT={K:'三振！',BB:'フォアボール',['1B']:'ヒット！',['2B']:'ツーベース！',['3B']:'スリーベース！',HR:'ホームラン！！',GO:'アウト',FO:'アウト',SAC:'送りバント',SB:'盗塁成功！',CS:'タッチアウト！ 盗塁失敗'};
 const isInplay=r=>!['K','BB','SB','CS','B','S','F'].includes(r);
+/* how long the ball is in the air (ms): grounders and liners stay quick, fly balls and long hits hang so you can watch them (will it go out?) */
+function flightMs(ev){
+  if(!ev.tgt) return 500; const r=ev.res;
+  if(r==='HR') return 1800;
+  if(r==='2B'||r==='3B') return 1100;
+  if(r==='FO') return ['左','中','右'].includes(ev.fielder)?1250:800;
+  if(r==='F') return 650;
+  return 500;
+}
 function startEv(ev,skipPitch){
+  ev.ft=flightMs(ev);
   M.ev=ev; M.t=skipPitch?300:0; M.shown=false; M.assigned=false; M.phase='ev';
-  M.dur=ev.steal?1800:ev.pitchOnly?(ev.tgt?900:650):isInplay(ev.res)?(ev.res==='HR'?2200:1500):950;
+  M.dur=ev.steal?1800:ev.pitchOnly?(ev.tgt?ev.ft+450:650):isInplay(ev.res)?(300+ev.ft+(ev.res==='HR'?1500:700)):950;
+  if(['HR','2B','3B'].includes(ev.res)||(ev.res==='FO'&&ev.ft>1000)) setTimeout(()=>{if(M&&M.ev===ev) floatText(mfx,MW,MH,88,150,pick(['打ったー！','大きい！','いったか！？']),'up big');},300/(S.mspeed||1));
   if(ev.pc) addLog(ev.pc);
   if(ev.steal){banner(`${ev.b.name}が走った！`); addLog(`${ev.b.name}が二塁へスタート！`);}
 }
@@ -1445,7 +1462,7 @@ function matchUpdate(dt){
   const sp=S.mspeed, ms=dt*1000*sp;
   if(M.phase==='ev'){
     M.t+=ms; const ev=M.ev; const ip=isInplay(ev.res);
-    const at=ev.steal?750:ip?800:320;
+    const at=ev.steal?750:ip?300+(ev.ft||500):320;
     if(!M.shown&&M.t>=(ev.pitchOnly?320:at)){M.shown=true;
       if(ev.kmh) speedFx(ev);
       if(ev.pitchOnly) floatText(mfx,MW,MH,104,168,ev.text,ev.res==='B'?'zz big':'up big');
@@ -1472,19 +1489,19 @@ function drawMatch(){
   const g=mctx; g.drawImage(mbg,0,0);
   const G=M.G, ev=M.phase==='ev'?M.ev:null;
   const def=ev?ev.def:defL(), off=ev?ev.off:offL();
-  const ents=[]; const t=M.t;
+  const ents=[]; const t=M.t; const FT=ev&&ev.ft||500, LT=300+FT; /* LT = when the ball lands */
   for(const [pos,pl] of Object.entries(def.fieldOf)){
     let [x,y]=FP[pos];
     if(ev&&ev.tgt&&ev.fielder===pos&&t>300){
       const reach=['GO','FO','SAC'].includes(ev.res)?1:0.55;
-      const k=t<800?(t-300)/500*reach:Math.max(0,reach*(1-(t-800)/600));
+      const k=t<LT?(t-300)/FT*reach:Math.max(0,reach*(1-(t-LT)/600));
       x+=(ev.tgt[0]-x)*k; y+=(ev.tgt[1]-y)*k;
     }
-    ents.push({y,f:()=>drawGuy(g,pl,def.pal,x,y,(ev&&ev.fielder===pos&&t>300&&t<1400)?Math.floor(t/120)%2:0,null,pos)});
+    ents.push({y,f:()=>drawGuy(g,pl,def.pal,x,y,(ev&&ev.fielder===pos&&t>300&&t<LT+600)?Math.floor(t/120)%2:0,null,pos)});
   }
   let pY=FP.投[1]; if(M.phase==='pitch'&&M.pt<M.wind) pY-=Math.sin(M.pt/M.wind*Math.PI)*2;
   let px0=FP.投[0];
-  if(ev&&ev.fielder==='投'&&ev.tgt&&t>300){const k=t<800?(t-300)/500:Math.max(0,1-(t-800)/600); px0+=(ev.tgt[0]-px0)*k; pY+=(ev.tgt[1]-pY)*k;}
+  if(ev&&ev.fielder==='投'&&ev.tgt&&t>300){const k=t<LT?(t-300)/FT:Math.max(0,1-(t-LT)/600); px0+=(ev.tgt[0]-px0)*k; pY+=(ev.tgt[1]-pY)*k;}
   ents.push({y:pY,f:()=>drawGuy(g,def.pitcher,def.pal,px0,pY,0,null,'投')});
   const curB=L=>G.pa&&L===offL()?G.pa.b:nextBatter(L);
   if(M.phase==='pitch'||M.phase==='choose'){const b=curB(off); const sw=M.phase==='pitch'&&M.tap!==null&&M.pt>=M.wind+M.T-70?'swing':'ready'; ents.push({y:178,f:()=>drawGuy(g,b,off.pal,76,178,0,sw)});}
@@ -1499,7 +1516,7 @@ function drawMatch(){
     else {bx=FP.投[0]+3; by=pY-6; bh=0;}
   } else if(ev&&!ev.steal){
     if(t<300){const k=t/300; bx=88; by=140+k*34; bh=3;}
-    else if(ev.tgt&&t<800){const k=(t-300)/500; bx=88+(ev.tgt[0]-88)*k; by=174+(ev.tgt[1]-174)*k; bh=ev.arc*4*k*(1-k)+1;}
+    else if(ev.tgt&&t<LT){const k=(t-300)/FT; bx=88+(ev.tgt[0]-88)*k; by=174+(ev.tgt[1]-174)*k; bh=ev.arc*4*k*(1-k)+1;}
   }
   if(bx!==null){fr(g,Math.round(bx)-1,Math.round(by),2,1,'rgba(20,40,20,.45)'); fr(g,Math.round(bx)-1,Math.round(by-bh)-1,2,2,'#ffffff');}
   // strike zone panel (catcher's view)
@@ -1531,7 +1548,7 @@ hcv.addEventListener('click',e=>{
   if(f) modal(FAC[f.t].name,`<p>${FAC[f.t].desc}</p><p class="note">同じ施設の数：${cnt(f.t)}</p>`,[{label:'撤去する',sub:true,fn:()=>{confirmPop('施設の撤去',`<p><b>${FAC[f.t].name}</b>を撤去しますか？</p><p class="bad">建てたときのお金は戻りません。</p>`,'撤去する',()=>{S.fac=S.fac.filter(x=>x!==f); buildBG(); news(`${FAC[f.t].name}を撤去しました`); save(); closeModal();}); return false;}},{label:'閉じる',sub:true}]);
 });
 $('#hintX').onclick=()=>{buildMode=null; $('#hint').hidden=true;};
-const GO={cup:()=>openCup(),players:()=>openPlayers(),fac:()=>openFac(),scout:()=>openScout(),rec:()=>openRec()};
+const GO={save:()=>doSave(),cup:()=>openCup(),players:()=>openPlayers(),fac:()=>openFac(),scout:()=>openScout(),rec:()=>openRec()};
 document.querySelectorAll('.si').forEach((b,i)=>b.onclick=()=>{if(!S)return; navI=i; applyNav(); GO[b.dataset.go]();});
 $('#pSpeed').onclick=()=>{if(!S)return; const o=[1,2,4,0]; S.speed=o[(o.indexOf(S.speed)+1)%4]; renderHUD(); save();};
 $('#pMenu').onclick=()=>{if(!S||M)return; if(!ov.hidden)return; toggleSide();};
@@ -1581,6 +1598,7 @@ function drawIcons(){
       case 'players': g.drawImage(sprite({sk:1,hc:0,hs:0,ey:1,mo:1,gl:0,mu:0,bd:0,bl:1,bu:1},{c:S?S.color:'#d13b3b',u:'#fafafa',p:'#e4e4e4'},{}),2,0,LSW,LSH); break;
       case 'fac': drawFac(g,'stall',1,1); break;
       case 'scout': disc(g,7,7,5,'#2a2a2a'); disc(g,7,7,3,'#9fd4ff'); fr(g,6,5,2,1,'#fff'); for(let i=0;i<5;i++) fr(g,11+i,11+i,2,2,'#6b3f1f'); break;
+      case 'save': fr(g,2,2,14,14,'#2f5fc4'); fr(g,5,2,8,5,'#e8eef7'); fr(g,10,3,2,3,'#2f5fc4'); fr(g,4,9,10,7,'#ffffff'); fr(g,5,11,8,1,'#9aa6b8'); fr(g,5,13,8,1,'#9aa6b8'); fr(g,2,2,14,1,'#1d3f8a'); break;
       case 'rec': fr(g,4,3,10,6,'#f0b400'); fr(g,2,4,2,3,'#f0b400'); fr(g,14,4,2,3,'#f0b400'); fr(g,6,9,6,2,'#d99a00'); fr(g,8,11,2,3,'#d99a00'); fr(g,5,14,8,2,'#7a4a22'); fr(g,6,4,2,3,'#fff3b0'); break;
     }});
 }
@@ -1613,7 +1631,7 @@ let tcol=COLORS[0];
 function drawTitle(){}
 const sw=$('#tSw'); COLORS.forEach((c,i)=>{const b=document.createElement('button'); b.style.background=c; b.setAttribute('aria-label','チームカラー'+(i+1)); if(i===0)b.classList.add('on'); b.onclick=()=>{tcol=c; sw.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');}; sw.appendChild(b);});
 function startGame(){ S.players.forEach(p=>{if(p.run==null) sync(p);}); Object.values(S.cups||{}).forEach(ts=>ts.forEach(t=>t.roster.forEach(p=>{if(p.run==null) sync(p);}))); $('#title').hidden=true; started=true; buildBG(); drawIcons(); renderHUD(); fitAll(); setTimeout(fitAll,300); }
-const existing=loadSave(); if(existing&&existing.v===3){$('#tCont').hidden=false;}
+const existing=loadSave(); if(existing&&existing.v===3){$('#tCont').hidden=false; $('#tLoad').innerHTML=`つづきから<small class="tsum">${saveSummary(existing)}</small>`;}
 const legRec=loadLegacy(); if(legRec.length) $('#tBest').insertAdjacentHTML('afterend',`<br><span style="color:#ffd45c">引き継ぎ選手：${legRec.map(p=>esc(p.name)).join('・')}</span>`);
 const bestRec=loadBest(); if(bestRec) $('#tBest').textContent=`ハイスコア：${bestRec.money.toLocaleString()}万円`;
 $('#tLoad').onclick=()=>{S=loadSave(); if(!S){$('#tErr').textContent='セーブデータが読めませんでした'; return;} startGame();};
