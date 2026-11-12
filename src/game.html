@@ -899,12 +899,12 @@ function monthly(){
 }
 const AGE={decline:31,fast:34,retire:36,last:39};
 /* age tag shown next to the position, so retirement never comes as a surprise */
-function ageTag(p){const a=p.age||25;
-  if(a>=AGE.last-1) return `<b style="color:#c8402f">${a}歳・今年で引退</b>`;
-  if(a>=AGE.retire) return `<b style="color:#c8402f">${a}歳・引退が近い</b>`;
-  if(a>=AGE.retire-1) return `<b style="color:#e0a020">${a}歳・来年から引退あり</b>`;
-  if(a>=AGE.fast) return `<span style="color:#e0a020">${a}歳・衰えが速い</span>`;
-  if(a>=AGE.decline) return `<span class="note">${a}歳・衰え中</span>`;
+function ageTag(p,short){const a=p.age||25; const w=(l,s_)=>short?s_:l;
+  if(a>=AGE.last-1) return `<b style="color:#c8402f">${a}歳${w('・今年で引退',' 今年引退')}</b>`;
+  if(a>=AGE.retire) return `<b style="color:#c8402f">${a}歳${w('・引退が近い',' 引退近い')}</b>`;
+  if(a>=AGE.retire-1) return `<b style="color:#e0a020">${a}歳${w('・来年から引退あり',' 来年引退?')}</b>`;
+  if(a>=AGE.fast) return `<span style="color:#e0a020">${a}歳${w('・衰えが速い',' 衰え速')}</span>`;
+  if(a>=AGE.decline) return `<span class="note">${a}歳${w('・衰え中',' 衰え')}</span>`;
   return `<span class="note">${a}歳</span>`;}
 function ssLabel(p){return 'SS'+SST[ssType(p)].n;}
 function newYear(){
@@ -980,7 +980,7 @@ function commandPrompt(){
   const draw=()=>{
     const trains=MENU[sel.menu].base>0;
     const list=S.players.slice().sort((a,b)=>(a.pos==='投')-(b.pos==='投')||POS.indexOf(a.pos)-POS.indexOf(b.pos));
-    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id), tr=tired(p); return `<div class="prow${pk?' picked':''}${tr?' tired':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)} ${rk(ovr(p))}${p.ss?`<span class="rk" style="background:#8a2be2;margin-left:2px">SS${ssShort(p)}</span>`:ssBadge(p)}${p.legacy?' <span class="rk" style="background:#e0457b">引継</span>':''}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}${tr?' <b class="bad">疲れすぎ</b>':''}　${ageTag(p)}</div><div class="sub st">${statLine(p)}${canSS(p)?`<button class="btn sm ssb" data-ssp="${p.id}">SS覚醒できる！</button>`:''}</div></div>`+akeys(p).map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}"${tr||maxed(p,k)?' disabled':''} data-p="${p.id}" data-ab="${k}" title="${maxed(p,k)?'Sランクなのでこれ以上は強化できません':`次のランクまで ${Math.round(rankProg(p,k)*100)}%`}">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
+    const rows=list.map(p=>{const pk=sel.picks.find(x=>x.id===p.id), tr=tired(p); return `<div class="prow${pk?' picked':''}${tr?' tired':''}"><canvas class="pic" data-pid="${p.id}"></canvas><div class="grow"><div class="nm">${esc(p.name)} ${rk(ovr(p))}${p.ss?`<span class="rk" style="background:#8a2be2;margin-left:2px">SS${ssShort(p)}</span>`:ssBadge(p)}${p.legacy?' <span class="rk" style="background:#e0457b">引継</span>':''}</div><div class="sub">${POS_S[p.pos]}　疲れ${fatHTML(p)}${tr?' <b class="bad">疲れすぎ</b>':''}</div>${(p.age||25)>=AGE.decline?`<div class="sub">${ageTag(p)}</div>`:''}<div class="sub st">${statLine(p)}${canSS(p)?`<button class="btn sm ssb" data-ssp="${p.id}">SS覚醒できる！</button>`:''}</div></div>`+akeys(p).map(k=>`<button class="btn sm ${pk&&pk.ab===k?'on':'sub'}"${tr||maxed(p,k)?' disabled':''} data-p="${p.id}" data-ab="${k}" title="${maxed(p,k)?'Sランクなのでこれ以上は強化できません':`次のランクまで ${Math.round(rankProg(p,k)*100)}%`}">${ABS[k]}<span class="rk" style="background:${RKC[rank(p[k])]}">${rank(p[k])}</span><i class="xp"><b style="width:${Math.round(rankProg(p,k)*100)}%"></b></i></button>`).join('')+`</div>`;}).join('');
     const b=modal(`${dateStr(S.day).replace(/ 月曜$/,'')}　今月のコマンド`,
       `<div class="mgrid">`+Object.entries(MENU).map(([k,v])=>{const c=menuCost(k); const lack=!canPay(c); return `<button class="btn ${sel.menu===k?'on':'sub'}${lack?' off':''}" data-m="${k}">${v.name}<small>${c?`${c}万円`:'無料'}</small></button>`;}).join('')+`</div>`+
       `<p class="note" style="margin:4px 0 0">${MENU[sel.menu].desc}${sel.menu==='sales'?`（約${salesGain()}万円）`:''}${!canPay(menuCost(sel.menu))?'　<span class="bad">お金が足りません</span>':''}</p>`+(S.money<0?`<p class="bad" style="margin:2px 0">赤字です。無料の「自主練」「休養」、お金がもらえる「営業回り」で立て直そう</p>`:'')+
